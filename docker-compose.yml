@@ -1,0 +1,45 @@
+services:
+  web:
+    build: ./client
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-diary}:${POSTGRES_PASSWORD:-diary}@db:5432/${POSTGRES_DB:-diary}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-diary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-diary}
+      POSTGRES_DB: ${POSTGRES_DB:-diary}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-diary} -d ${POSTGRES_DB:-diary}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
