@@ -56,6 +56,31 @@
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@media (width < 48rem) {
+  html {
+    max-width: 100%;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  html,
+  body,
+  body * {
+    touch-action: pan-y;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
