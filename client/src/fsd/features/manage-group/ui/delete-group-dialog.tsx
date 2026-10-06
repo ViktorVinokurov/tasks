@@ -31,9 +31,18 @@ export function DeleteGroupDialog({ group, onOpenChange }: DeleteGroupDialogProp
             Дела останутся в ежедневнике, только уже без этой группы.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {deletion.error ? <p className="text-sm text-destructive">{deletion.error}</p> : null}
         <AlertDialogFooter>
           <AlertDialogCancel>Оставить</AlertDialogCancel>
-          <AlertDialogAction onClick={deletion.confirm}>Удалить группу</AlertDialogAction>
+          <AlertDialogAction
+            disabled={deletion.pending}
+            onClick={(event) => {
+              event.preventDefault()
+              void deletion.confirm()
+            }}
+          >
+            Удалить группу
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

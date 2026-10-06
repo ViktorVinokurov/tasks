@@ -6,6 +6,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import CurrentUser
 from app.models import Group, Task
 from app.schemas import TaskCreate, TaskRead, TaskUpdate
 from app.support import contains_pattern, new_id, utcnow
@@ -13,23 +14,25 @@ from app.support import contains_pattern, new_id, utcnow
 router = APIRouter(prefix="/tasks", tags=["Дела"])
 
 
-def _get_task(db: Session, task_id: str) -> Task:
+def _get_task(db: Session, task_id: str, user_id: str) -> Task:
     task = db.get(Task, task_id)
-    if task is None:
+    if task is None or task.user_id != user_id:
         raise HTTPException(status_code=404, detail="Дело не найдено")
     return task
 
 
-def ensure_group(db: Session, group_id: str | None) -> str | None:
+def ensure_group(db: Session, group_id: str | None, user_id: str) -> str | None:
     if not group_id:
         return None
-    if db.get(Group, group_id) is None:
+    group = db.get(Group, group_id)
+    if group is None or group.user_id != user_id:
         raise HTTPException(status_code=422, detail="Такой группы нет")
     return group_id
 
 
 @router.get("", response_model=list[TaskRead])
 def list_tasks(
+    user: CurrentUser,
     day: date | None = Query(default=None, alias="date", description="День в формате ГГГГ-ММ-ДД"),
     status: Literal["all", "active", "completed"] = Query(
         default="all",
@@ -43,7 +46,7 @@ def list_tasks(
     q: str | None = Query(default=None, description="Поиск по названию и пометке"),
     db: Session = Depends(get_db),
 ) -> list[Task]:
-    stmt = select(Task)
+    stmt = select(Task).where(Task.user_id == user.id)
     if day is not None:
         stmt = stmt.where(Task.date == day)
     if status == "active":
@@ -68,11 +71,12 @@ def list_tasks(
 
 
 @router.post("", response_model=TaskRead, status_code=201)
-def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> Task:
-    group_id = ensure_group(db, payload.group_id)
+def create_task(payload: TaskCreate, user: CurrentUser, db: Session = Depends(get_db)) -> Task:
+    group_id = ensure_group(db, payload.group_id, user.id)
     now = utcnow()
     task = Task(
         id=new_id(),
+        user_id=user.id,
         title=payload.title,
         note=payload.note,
         date=payload.date,
@@ -88,13 +92,18 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> Task:
 
 
 @router.get("/{task_id}", response_model=TaskRead)
-def read_task(task_id: str, db: Session = Depends(get_db)) -> Task:
-    return _get_task(db, task_id)
+def read_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) -> Task:
+    return _get_task(db, task_id, user.id)
 
 
 @router.patch("/{task_id}", response_model=TaskRead)
-def update_task(task_id: str, payload: TaskUpdate, db: Session = Depends(get_db)) -> Task:
-    task = _get_task(db, task_id)
+def update_task(
+    task_id: str,
+    payload: TaskUpdate,
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> Task:
+    task = _get_task(db, task_id, user.id)
     changed = False
     fields = payload.model_fields_set
 
@@ -112,7 +121,7 @@ def update_task(task_id: str, payload: TaskUpdate, db: Session = Depends(get_db)
         task.date = payload.date
         changed = True
     if "group_id" in fields:
-        task.group_id = ensure_group(db, payload.group_id)
+        task.group_id = ensure_group(db, payload.group_id, user.id)
         changed = True
     if "completed" in fields:
         if payload.completed is None:
@@ -128,8 +137,8 @@ def update_task(task_id: str, payload: TaskUpdate, db: Session = Depends(get_db)
 
 
 @router.post("/{task_id}/toggle", response_model=TaskRead)
-def toggle_task(task_id: str, db: Session = Depends(get_db)) -> Task:
-    task = _get_task(db, task_id)
+def toggle_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) -> Task:
+    task = _get_task(db, task_id, user.id)
     task.completed = not task.completed
     task.updated_at = utcnow()
     db.commit()
@@ -138,8 +147,8 @@ def toggle_task(task_id: str, db: Session = Depends(get_db)) -> Task:
 
 
 @router.delete("/{task_id}", status_code=204)
-def delete_task(task_id: str, db: Session = Depends(get_db)) -> Response:
-    task = _get_task(db, task_id)
+def delete_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) -> Response:
+    task = _get_task(db, task_id, user.id)
     db.delete(task)
     db.commit()
     return Response(status_code=204)

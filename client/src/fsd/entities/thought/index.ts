@@ -1,7 +1,9 @@
 export { selectThoughtsByDate } from "./model/selectors"
 export {
   addThought,
+  clearThoughts,
   deleteThought,
+  setThoughts,
   thoughtsReducer,
   updateThought,
 } from "./model/slice"

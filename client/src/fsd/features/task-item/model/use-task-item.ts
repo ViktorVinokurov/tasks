@@ -4,13 +4,16 @@ import { useState, type FormEvent } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { selectGroupById, selectGroups } from "@/entities/group"
-import { deleteTask, toggleTask, updateTask, type Task } from "@/entities/task"
+import { useDiaryApi } from "@/entities/session"
+import { deleteTask, updateTask, type Task } from "@/entities/task"
+import { ApiError } from "@/shared/api/client"
 import { LIMITS } from "@/shared/config/app"
 
 const NONE = "none"
 
 export function useTaskItem(task: Task) {
   const dispatch = useDispatch()
+  const request = useDiaryApi()
   const groups = useSelector(selectGroups)
   const group = useSelector((state: Parameters<typeof selectGroupById>[0]) =>
     selectGroupById(state, task.groupId),
@@ -22,6 +25,8 @@ export function useTaskItem(task: Task) {
   const [date, setDate] = useState(task.date)
   const [groupId, setGroupId] = useState(task.groupId ?? NONE)
   const [error, setError] = useState("")
+  const [actionError, setActionError] = useState("")
+  const [pending, setPending] = useState(false)
 
   function openEditor() {
     setTitle(task.title)
@@ -32,8 +37,9 @@ export function useTaskItem(task: Task) {
     setEditing(true)
   }
 
-  function onSave(event: FormEvent) {
+  async function onSave(event: FormEvent) {
     event.preventDefault()
+    if (pending) return
     const nextTitle = title.trim()
     if (!nextTitle) {
       setError("У дела должно быть название")
@@ -44,19 +50,25 @@ export function useTaskItem(task: Task) {
       return
     }
 
-    dispatch(
-      updateTask({
-        id: task.id,
-        changes: {
+    setPending(true)
+    try {
+      const updated = await request<Task>(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        body: {
           title: nextTitle,
           note: note.trim(),
           date,
           groupId: groupId === NONE ? null : groupId,
         },
-      }),
-    )
-    setEditing(false)
-    setError("")
+      })
+      dispatch(updateTask(updated))
+      setEditing(false)
+      setError("")
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.message : "Не удалось сохранить дело")
+    } finally {
+      setPending(false)
+    }
   }
 
   return {
@@ -70,6 +82,8 @@ export function useTaskItem(task: Task) {
     date,
     groupId,
     error,
+    actionError,
+    pending,
     noneValue: NONE,
     titleLimit: LIMITS.taskTitle,
     noteLimit: LIMITS.taskNote,
@@ -85,12 +99,28 @@ export function useTaskItem(task: Task) {
     },
     setDate,
     setGroupId,
-    toggle() {
-      dispatch(toggleTask(task.id))
+    async toggle() {
+      setActionError("")
+      try {
+        const updated = await request<Task>(`/api/tasks/${task.id}/toggle`, { method: "POST" })
+        dispatch(updateTask(updated))
+      } catch (reason) {
+        setActionError(reason instanceof ApiError ? reason.message : "Не удалось отметить дело")
+      }
     },
-    remove() {
-      dispatch(deleteTask(task.id))
-      setConfirmDelete(false)
+    async remove() {
+      if (pending) return
+      setPending(true)
+      setActionError("")
+      try {
+        await request<void>(`/api/tasks/${task.id}`, { method: "DELETE" })
+        dispatch(deleteTask(task.id))
+        setConfirmDelete(false)
+      } catch (reason) {
+        setActionError(reason instanceof ApiError ? reason.message : "Не удалось удалить дело")
+      } finally {
+        setPending(false)
+      }
     },
     onSave,
   }

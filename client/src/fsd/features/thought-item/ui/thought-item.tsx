@@ -23,7 +23,7 @@ export function ThoughtItem({ thought }: { thought: Thought }) {
 
   if (item.editing) {
     return (
-      <form onSubmit={item.onSave} className="grid gap-2 rounded-2xl bg-background/80 p-3">
+      <form onSubmit={item.onSave} className="motion-rise grid gap-2 rounded-2xl bg-background/80 p-3">
         <Textarea
           value={item.text}
           onChange={(event) => item.setText(event.target.value)}
@@ -36,7 +36,7 @@ export function ThoughtItem({ thought }: { thought: Thought }) {
           <Button type="button" variant="outline" size="lg" onClick={() => item.setEditing(false)}>
             Отмена
           </Button>
-          <Button type="submit" size="lg">
+          <Button type="submit" size="lg" disabled={item.pending}>
             Сохранить
           </Button>
         </div>
@@ -77,9 +77,18 @@ export function ThoughtItem({ thought }: { thought: Thought }) {
             <AlertDialogTitle>Удалить мысль?</AlertDialogTitle>
             <AlertDialogDescription>Запись пропадёт из этого дня.</AlertDialogDescription>
           </AlertDialogHeader>
+          {item.actionError ? <p className="text-sm text-destructive">{item.actionError}</p> : null}
           <AlertDialogFooter>
             <AlertDialogCancel>Оставить</AlertDialogCancel>
-            <AlertDialogAction onClick={item.remove}>Удалить</AlertDialogAction>
+            <AlertDialogAction
+              disabled={item.pending}
+              onClick={(event) => {
+                event.preventDefault()
+                void item.remove()
+              }}
+            >
+              Удалить
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

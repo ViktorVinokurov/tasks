@@ -1,10 +1,10 @@
 # Ежедневник
 
-Личный дневник дел и мыслей на день. Авторизации нет: экраны хранят записи в браузере на этом устройстве.
+Личный дневник дел и мыслей на день. Вход по почте и паролю: дела, мысли и группы принадлежат аккаунту и лежат в PostgreSQL.
 
 В корне три каталога: `client` — интерфейс, `backend` — API, `docs` — локальное описание проекта (в git не входит).
 
-Отдельный API на FastAPI кладёт те же дела, мысли и группы в PostgreSQL. Как его запустить локально и на сервере — в [backend/README.md](backend/README.md). Интерфейс к этому API пока не подключён.
+Интерфейс ходит в API. Как поднять сервис локально и на сервере — в [backend/README.md](backend/README.md).
 
 ## Запуск
 
@@ -14,7 +14,9 @@ npm install
 npm run dev
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).
+Рядом должен работать API на [http://127.0.0.1:8000](http://127.0.0.1:8000): интерфейс проксирует к нему запросы `/api`. Проще поднять всё сразу через Docker ниже.
+
+Откройте [http://localhost:3000](http://localhost:3000) и создайте аккаунт.
 
 ## Проверки
 
@@ -36,7 +38,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Интерфейс будет на [http://localhost:3000](http://localhost:3000), API — на [http://127.0.0.1:8000](http://127.0.0.1:8000). В `.env` смените `POSTGRES_PASSWORD` до первого запуска.
+Интерфейс будет на [http://localhost:3000](http://localhost:3000), API — на [http://127.0.0.1:8000](http://127.0.0.1:8000). В `.env` до первого запуска смените `POSTGRES_PASSWORD` и `JWT_SECRET`: секрет подписывает сессии.
 
 ## CI и деплой
 
@@ -76,7 +78,7 @@ POSTGRES_USER=diary
 POSTGRES_PASSWORD=длинный-пароль
 POSTGRES_DB=diary
 CORS_ORIGINS=http://localhost:3000
-SEED_ON_STARTUP=true
+JWT_SECRET=длинная-случайная-строка
 WEB_BIND=3000
 EOF
 chmod 600 .env

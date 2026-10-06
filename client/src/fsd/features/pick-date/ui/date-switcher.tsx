@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
 import { todayISO } from "@/shared/lib/date"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/button"
+import { MotionSwap } from "@/shared/ui/motion"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover"
 
 import { useDateSwitcher } from "../model/use-date-switcher"
@@ -24,9 +25,9 @@ export function DateSwitcher() {
           onClick={date.goPrev}
           aria-label="Предыдущий день"
         >
-          <ChevronLeft />
+          <ChevronLeft className="transition-transform duration-200 group-hover/button:-translate-x-0.5" />
         </Button>
-        <div className="min-w-0 flex-1 sm:flex-none">
+        <MotionSwap id={date.selectedDate} axis="x" clip className="min-w-0 flex-1 sm:flex-none">
           <p className="truncate text-xl leading-tight font-bold sm:text-2xl">{date.title}</p>
           <p
             className={cn(
@@ -36,7 +37,7 @@ export function DateSwitcher() {
           >
             {date.relative || "сегодня"}
           </p>
-        </div>
+        </MotionSwap>
         <Button
           type="button"
           variant="outline"
@@ -45,7 +46,7 @@ export function DateSwitcher() {
           onClick={date.goNext}
           aria-label="Следующий день"
         >
-          <ChevronRight />
+          <ChevronRight className="transition-transform duration-200 group-hover/button:translate-x-0.5" />
         </Button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
@@ -74,9 +75,11 @@ export function DateSwitcher() {
                 onClick={date.showPreviousMonth}
                 aria-label="Предыдущий месяц"
               >
-                <ChevronLeft />
+                <ChevronLeft className="transition-transform duration-200 group-hover/button:-translate-x-0.5" />
               </Button>
-              <p className="text-sm font-semibold">{date.monthTitle}</p>
+              <MotionSwap id={date.monthKey} axis="x" clip>
+                <p className="text-sm font-semibold">{date.monthTitle}</p>
+              </MotionSwap>
               <Button
                 type="button"
                 variant="ghost"
@@ -84,7 +87,7 @@ export function DateSwitcher() {
                 onClick={date.showNextMonth}
                 aria-label="Следующий месяц"
               >
-                <ChevronRight />
+                <ChevronRight className="transition-transform duration-200 group-hover/button:translate-x-0.5" />
               </Button>
             </div>
             <div className="grid grid-cols-7 text-xs text-muted-foreground">
@@ -94,6 +97,7 @@ export function DateSwitcher() {
                 </span>
               ))}
             </div>
+            <MotionSwap id={date.monthKey} axis="x">
             <div className="grid grid-cols-7">
               {date.cells.map((cell) => {
                 const selected = cell.iso === date.selectedDate
@@ -104,7 +108,7 @@ export function DateSwitcher() {
                     type="button"
                     onClick={() => date.selectDate(cell.iso)}
                     className={cn(
-                      "mx-auto flex size-8 items-center justify-center rounded-lg text-sm transition-colors",
+                      "mx-auto flex size-8 items-center justify-center rounded-lg text-sm transition-colors duration-200",
                       cell.inMonth ? "text-foreground" : "text-muted-foreground/50",
                       selected && "bg-primary text-primary-foreground",
                       !selected && isToday && "ring-1 ring-primary/50",
@@ -116,6 +120,7 @@ export function DateSwitcher() {
                 )
               })}
             </div>
+            </MotionSwap>
           </PopoverContent>
         </Popover>
       </div>

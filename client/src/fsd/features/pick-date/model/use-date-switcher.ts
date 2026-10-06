@@ -44,6 +44,7 @@ export function useDateSwitcher() {
     isToday: selectedDate === today,
     weekdayLabels: WEEKDAY_LABELS,
     monthTitle: formatMonthTitle(cursor.year, cursor.month),
+    monthKey: `${cursor.year}-${String(cursor.month).padStart(2, "0")}`,
     cells: buildMonthCells(cursor.year, cursor.month),
     open,
     setOpen,

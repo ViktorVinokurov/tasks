@@ -1,8 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
 
-import { createId } from "@/shared/lib/id"
-
-import type { Task, TaskDraft } from "./types"
+import type { Task } from "./types"
 
 type TasksState = {
   items: Task[]
@@ -16,59 +14,33 @@ const tasksSlice = createSlice({
   name: "tasks",
   initialState,
   reducers: {
-    addTask: (state, action: PayloadAction<TaskDraft>) => {
-      const title = action.payload.title.trim()
-      if (!title) return
-
-      const timestamp = new Date().toISOString()
-      state.items.push({
-        id: createId(),
-        title,
-        note: action.payload.note.trim(),
-        date: action.payload.date,
-        groupId: action.payload.groupId,
-        completed: false,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
+    setTasks(state, action: PayloadAction<Task[]>) {
+      state.items = action.payload
     },
-    toggleTask: (state, action: PayloadAction<string>) => {
-      const task = state.items.find((item) => item.id === action.payload)
-      if (!task) return
-      task.completed = !task.completed
-      task.updatedAt = new Date().toISOString()
+    addTask(state, action: PayloadAction<Task>) {
+      state.items.push(action.payload)
     },
-    updateTask: (
-      state,
-      action: PayloadAction<{ id: string; changes: Partial<TaskDraft> }>,
-    ) => {
-      const task = state.items.find((item) => item.id === action.payload.id)
-      if (!task) return
-
-      const { changes } = action.payload
-      if (changes.title !== undefined) {
-        const title = changes.title.trim()
-        if (!title) return
-        task.title = title
-      }
-      if (changes.note !== undefined) task.note = changes.note.trim()
-      if (changes.date !== undefined) task.date = changes.date
-      if (changes.groupId !== undefined) task.groupId = changes.groupId
-      task.updatedAt = new Date().toISOString()
+    updateTask(state, action: PayloadAction<Task>) {
+      const index = state.items.findIndex((item) => item.id === action.payload.id)
+      if (index >= 0) state.items[index] = action.payload
     },
-    deleteTask: (state, action: PayloadAction<string>) => {
+    deleteTask(state, action: PayloadAction<string>) {
       state.items = state.items.filter((item) => item.id !== action.payload)
     },
-    detachGroup: (state, action: PayloadAction<string>) => {
+    detachGroup(state, action: PayloadAction<string>) {
       for (const task of state.items) {
         if (task.groupId === action.payload) task.groupId = null
       }
+    },
+    clearTasks(state) {
+      state.items = []
     },
   },
 })
 
 export const tasksReducer = tasksSlice.reducer
-export const { addTask, toggleTask, updateTask, deleteTask, detachGroup } = tasksSlice.actions
+export const { setTasks, addTask, updateTask, deleteTask, detachGroup, clearTasks } =
+  tasksSlice.actions
 export type { TasksState }
 
 export function compareTasks(left: Task, right: Task) {

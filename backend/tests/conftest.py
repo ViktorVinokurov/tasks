@@ -9,7 +9,7 @@ if _DB_PATH.exists():
     _DB_PATH.unlink()
 
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{_DB_PATH}"
-os.environ["SEED_ON_STARTUP"] = "true"
+os.environ["JWT_SECRET"] = "test-secret"
 
 import pytest
 from fastapi.testclient import TestClient

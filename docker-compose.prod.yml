@@ -6,6 +6,11 @@ services:
     pull_policy: always
     ports:
       - "${WEB_BIND:-3000}:3000"
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -27,7 +32,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-diary}:${POSTGRES_PASSWORD:-diary}@db:5432/${POSTGRES_DB:-diary}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      JWT_SECRET: ${JWT_SECRET:?Задайте JWT_SECRET в .env}
     depends_on:
       db:
         condition: service_healthy

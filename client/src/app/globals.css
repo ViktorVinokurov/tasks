@@ -53,6 +53,7 @@
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -66,5 +67,111 @@
       radial-gradient(1000px 420px at 0% -10%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 55%),
       radial-gradient(800px 360px at 100% 0%, color-mix(in oklch, var(--accent) 70%, transparent), transparent 50%);
     color: var(--foreground);
+  }
+}
+
+@keyframes motion-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.55rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-page {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-date-next {
+  from {
+    opacity: 0;
+    transform: translateX(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes motion-date-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes motion-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes motion-breathe {
+  0%,
+  100% {
+    opacity: 0.86;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.045);
+  }
+}
+
+@utility motion-rise {
+  animation: motion-rise 420ms var(--ease-out-soft) both;
+}
+
+@utility motion-page {
+  animation: motion-page 340ms var(--ease-out-soft) both;
+}
+
+@utility motion-date-next {
+  animation: motion-date-next 280ms var(--ease-out-soft) both;
+}
+
+@utility motion-date-prev {
+  animation: motion-date-prev 280ms var(--ease-out-soft) both;
+}
+
+@utility motion-check {
+  animation: motion-check 280ms var(--ease-out-soft) both;
+}
+
+@utility motion-breathe {
+  animation: motion-breathe 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

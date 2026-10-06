@@ -1,5 +1,7 @@
+"use client"
+
 import { Check } from "lucide-react"
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
 import type { Task } from "../model/types"
 import { cn } from "@/shared/lib/utils"
@@ -15,29 +17,15 @@ export function TaskRow({ task, group, onToggle, menu }: TaskRowProps) {
   return (
     <article
       className={cn(
-        "flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-background/70",
+        "flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2 transition-[background-color,border-color,opacity] duration-200 hover:border-border hover:bg-background/70",
         task.completed && "opacity-70",
       )}
     >
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={task.completed}
-        aria-label={task.completed ? "Вернуть в дела" : "Отметить выполненным"}
-        onClick={onToggle}
-        className={cn(
-          "grid size-6 shrink-0 place-items-center rounded-full border transition-colors",
-          task.completed
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-border bg-card text-transparent hover:border-primary",
-        )}
-      >
-        <Check className="size-3.5" />
-      </button>
+      <CompleteToggle completed={task.completed} onToggle={onToggle} />
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "text-sm leading-5 font-semibold",
+            "text-sm leading-5 font-semibold transition-colors duration-200",
             task.completed && "text-muted-foreground line-through decoration-muted-foreground/70",
           )}
         >
@@ -61,5 +49,40 @@ export function TaskRow({ task, group, onToggle, menu }: TaskRowProps) {
       </div>
       {menu ? <div className="flex shrink-0 items-center self-center">{menu}</div> : null}
     </article>
+  )
+}
+
+function CompleteToggle({ completed, onToggle }: { completed: boolean; onToggle: () => void }) {
+  const [seen, setSeen] = useState(completed)
+  const [pop, setPop] = useState(false)
+
+  if (completed !== seen) {
+    setSeen(completed)
+    setPop(completed)
+  }
+
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={completed}
+      aria-label={completed ? "Вернуть в дела" : "Отметить выполненным"}
+      onClick={onToggle}
+      className={cn(
+        "grid size-6 shrink-0 place-items-center rounded-full border transition-colors duration-200",
+        completed
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card text-transparent hover:border-primary",
+      )}
+    >
+      <Check
+        className={cn(
+          "size-3.5",
+          completed ? "scale-100" : "scale-0",
+          pop ? "motion-check" : "transition-transform duration-200",
+        )}
+        onAnimationEnd={() => setPop(false)}
+      />
+    </button>
   )
 }

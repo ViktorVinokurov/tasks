@@ -5,6 +5,7 @@ import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react"
 import { DeleteGroupDialog, GroupFormDialog } from "@/features/manage-group"
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { MotionList } from "@/shared/ui/motion"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,23 +29,17 @@ export function GroupBoard() {
           </p>
         </div>
         <Button type="button" size="lg" className="shrink-0" onClick={board.startCreate}>
-          <Plus />
+          <Plus className="transition-transform duration-300 ease-out-soft group-hover/button:rotate-90" />
           Новая группа
         </Button>
       </section>
 
-      {board.cards.length === 0 ? (
-        <Card>
-          <CardContent className="py-5">
-            <p className="text-sm leading-6 text-muted-foreground">
-              Групп пока нет. Создайте первую — например, «Дом» или «Учёба».
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {board.cards.map(({ group, caption }) => (
-            <Card key={group.id}>
+      <MotionList
+        className="grid gap-3 sm:grid-cols-2"
+        items={board.cards.map(({ group, caption }) => ({
+          id: group.id,
+          content: (
+            <Card className="transition-shadow duration-300 hover:shadow-[0_18px_40px_-24px_rgba(62,48,32,0.45)]">
               <CardHeader className="flex-row items-center justify-between gap-3 pb-5">
                 <div className="min-w-0">
                   <CardTitle className="flex items-center gap-2">
@@ -77,9 +72,18 @@ export function GroupBoard() {
                 </DropdownMenu>
               </CardHeader>
             </Card>
-          ))}
-        </div>
-      )}
+          ),
+        }))}
+        empty={
+          <Card>
+            <CardContent className="py-5">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Групп пока нет. Создайте первую — например, «Дом» или «Учёба».
+              </p>
+            </CardContent>
+          </Card>
+        }
+      />
 
       <GroupFormDialog
         open={board.formOpen}

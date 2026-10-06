@@ -8,7 +8,8 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://diary:diary@localhost:5432/diary"
     cors_origins: str = "http://localhost:3000"
-    seed_on_startup: bool = True
+    jwt_secret: str = "dev-only-change-me"
+    jwt_ttl_days: int = 30
 
     @property
     def cors_origin_list(self) -> list[str]:

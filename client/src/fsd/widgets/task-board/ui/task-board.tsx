@@ -1,14 +1,51 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import { TaskFilters } from "@/features/filter-tasks"
 import { TaskItem } from "@/features/task-item"
+import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { MotionList } from "@/shared/ui/motion"
 
 import { useTaskBoard } from "../model/use-task-board"
 
 export function TaskBoard() {
   const board = useTaskBoard()
+  const rows: { id: string; content: ReactNode; animateExit?: boolean }[] = []
+
+  board.groups.forEach((group, index) => {
+    rows.push({
+      id: `day-${group.date}`,
+      animateExit: false,
+      content: (
+        <div className={cn("flex min-h-8 items-center justify-between gap-3 px-2", index > 0 && "mt-4")}>
+          <h2 className="min-w-0 text-sm leading-5 font-semibold">
+            {group.title}
+            {group.relative ? (
+              <span className="ml-2 font-medium text-muted-foreground">{group.relative}</span>
+            ) : null}
+          </h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => board.openDay(group.date)}
+          >
+            Открыть день
+          </Button>
+        </div>
+      ),
+    })
+    for (const task of group.tasks) {
+      rows.push({
+        id: task.id,
+        content: <TaskItem task={task} />,
+      })
+    }
+  })
 
   return (
     <div className="grid gap-6">
@@ -26,38 +63,16 @@ export function TaskBoard() {
         </CardHeader>
         <CardContent className="grid gap-5">
           <TaskFilters filters={board.filters} />
-          {board.groups.length === 0 ? (
-            <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
-              {board.emptyMessage}
-            </p>
-          ) : (
-            <div className="grid gap-5">
-              {board.groups.map((group) => (
-                <section key={group.date} className="grid gap-1">
-                  <div className="flex min-h-8 items-center justify-between gap-3 px-2">
-                    <h2 className="min-w-0 text-sm leading-5 font-semibold">
-                      {group.title}
-                      {group.relative ? (
-                        <span className="ml-2 font-medium text-muted-foreground">{group.relative}</span>
-                      ) : null}
-                    </h2>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => board.openDay(group.date)}
-                    >
-                      Открыть день
-                    </Button>
-                  </div>
-                  {group.tasks.map((task) => (
-                    <TaskItem key={task.id} task={task} />
-                  ))}
-                </section>
-              ))}
-            </div>
-          )}
+          <MotionList
+            className="flex flex-col"
+            itemClassName="pb-1"
+            items={rows}
+            empty={
+              <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                {board.emptyMessage}
+              </p>
+            }
+          />
         </CardContent>
       </Card>
     </div>

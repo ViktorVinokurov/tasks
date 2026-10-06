@@ -12,6 +12,7 @@ import {
 import createWebStorage from "redux-persist/lib/storage/createWebStorage"
 
 import { groupsReducer } from "@/entities/group"
+import { sessionReducer } from "@/entities/session"
 import { tasksReducer } from "@/entities/task"
 import { thoughtsReducer } from "@/entities/thought"
 import { pickDateReducer } from "@/features/pick-date"
@@ -35,6 +36,7 @@ function createPersistStorage() {
 }
 
 const rootReducer = combineReducers({
+  session: sessionReducer,
   tasks: tasksReducer,
   thoughts: thoughtsReducer,
   groups: groupsReducer,
@@ -43,9 +45,9 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(
   {
-    key: "ezhednevnik",
+    key: "ezhednevnik-session",
     storage: createPersistStorage(),
-    whitelist: ["tasks", "thoughts", "groups"],
+    whitelist: ["session"],
   },
   rootReducer,
 )

@@ -8,6 +8,11 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+if ! grep -Eq '^JWT_SECRET=.+' .env; then
+  echo "Добавьте JWT_SECRET в /opt/ezhednevnik/.env — длинная случайная строка для сессий." >&2
+  exit 1
+fi
+
 if [[ -z "${WEB_IMAGE:-}" || -z "${API_IMAGE:-}" || -z "${GHCR_TOKEN:-}" || -z "${GHCR_USER:-}" ]]; then
   echo "Для деплоя нужны GHCR_TOKEN, GHCR_USER, WEB_IMAGE и API_IMAGE." >&2
   exit 1

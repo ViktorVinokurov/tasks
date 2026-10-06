@@ -23,9 +23,9 @@ export function AddThoughtForm({ date }: { date: string }) {
         className="min-h-28 font-serif text-base leading-7"
         aria-invalid={Boolean(form.error)}
       />
-      {form.error ? <p className="text-sm text-destructive">{form.error}</p> : null}
+      {form.error ? <p className="motion-rise text-sm text-destructive">{form.error}</p> : null}
       <div className="flex justify-end">
-        <Button type="submit" className="h-10 w-full sm:w-auto">
+        <Button type="submit" className="h-10 w-full sm:w-auto" disabled={form.pending}>
           Записать
         </Button>
       </div>

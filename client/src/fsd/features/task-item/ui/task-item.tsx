@@ -73,6 +73,9 @@ export function TaskItem({ task }: { task: Task }) {
           </DropdownMenu>
         }
       />
+      {item.actionError && !item.confirmDelete ? (
+        <p className="px-1 text-sm text-destructive">{item.actionError}</p>
+      ) : null}
 
       <Dialog open={item.editing} onOpenChange={item.setEditing}>
         <DialogContent>
@@ -131,7 +134,9 @@ export function TaskItem({ task }: { task: Task }) {
               <Button type="button" variant="outline" onClick={() => item.setEditing(false)}>
                 Отмена
               </Button>
-              <Button type="submit">Сохранить</Button>
+              <Button type="submit" disabled={item.pending}>
+                Сохранить
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -145,9 +150,18 @@ export function TaskItem({ task }: { task: Task }) {
               «{item.task.title}» исчезнет из ежедневника. Это нельзя отменить.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {item.actionError ? <p className="text-sm text-destructive">{item.actionError}</p> : null}
           <AlertDialogFooter>
             <AlertDialogCancel>Оставить</AlertDialogCancel>
-            <AlertDialogAction onClick={item.remove}>Удалить</AlertDialogAction>
+            <AlertDialogAction
+              disabled={item.pending}
+              onClick={(event) => {
+                event.preventDefault()
+                void item.remove()
+              }}
+            >
+              Удалить
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

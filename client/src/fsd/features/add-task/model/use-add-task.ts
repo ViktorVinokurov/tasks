@@ -4,40 +4,53 @@ import { useState, type FormEvent } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { selectGroups } from "@/entities/group"
-import { addTask } from "@/entities/task"
+import { useDiaryApi } from "@/entities/session"
+import { addTask, type Task } from "@/entities/task"
+import { ApiError } from "@/shared/api/client"
 import { LIMITS } from "@/shared/config/app"
 
 const NONE = "none"
 
 export function useAddTask(date: string) {
   const dispatch = useDispatch()
+  const request = useDiaryApi()
   const groups = useSelector(selectGroups)
   const [title, setTitle] = useState("")
   const [note, setNote] = useState("")
   const [groupId, setGroupId] = useState<string>(NONE)
   const [showNote, setShowNote] = useState(false)
   const [error, setError] = useState("")
+  const [pending, setPending] = useState(false)
 
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault()
+    if (pending) return
     const nextTitle = title.trim()
     if (!nextTitle) {
       setError("Напишите, что нужно сделать")
       return
     }
 
-    dispatch(
-      addTask({
-        title: nextTitle,
-        note: note.trim(),
-        date,
-        groupId: groupId === NONE ? null : groupId,
-      }),
-    )
-    setTitle("")
-    setNote("")
-    setShowNote(false)
-    setError("")
+    setPending(true)
+    try {
+      const task = await request<Task>("/api/tasks", {
+        body: {
+          title: nextTitle,
+          note: note.trim(),
+          date,
+          groupId: groupId === NONE ? null : groupId,
+        },
+      })
+      dispatch(addTask(task))
+      setTitle("")
+      setNote("")
+      setShowNote(false)
+      setError("")
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.message : "Не удалось сохранить дело")
+    } finally {
+      setPending(false)
+    }
   }
 
   return {
@@ -47,6 +60,7 @@ export function useAddTask(date: string) {
     groups,
     showNote,
     error,
+    pending,
     noneValue: NONE,
     titleLimit: LIMITS.taskTitle,
     noteLimit: LIMITS.taskNote,

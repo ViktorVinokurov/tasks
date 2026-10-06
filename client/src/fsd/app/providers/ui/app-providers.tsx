@@ -6,6 +6,7 @@ import { Provider } from "react-redux"
 import { PersistGate } from "redux-persist/integration/react"
 
 import { persistor, store } from "@/app/model/store"
+import { SessionGate } from "@/features/auth"
 
 import { DiarySplash } from "./diary-splash"
 
@@ -17,7 +18,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     >
       <Provider store={store}>
         <PersistGate loading={<DiarySplash />} persistor={persistor}>
-          {children}
+          <SessionGate>{children}</SessionGate>
         </PersistGate>
       </Provider>
     </SerwistProvider>

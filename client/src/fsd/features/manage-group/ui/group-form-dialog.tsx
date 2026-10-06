@@ -88,7 +88,9 @@ function GroupFormBody({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Отмена
           </Button>
-          <Button type="submit">{form.isEdit ? "Сохранить" : "Создать"}</Button>
+          <Button type="submit" disabled={form.pending}>
+            {form.isEdit ? "Сохранить" : "Создать"}
+          </Button>
         </DialogFooter>
       </form>
     </>

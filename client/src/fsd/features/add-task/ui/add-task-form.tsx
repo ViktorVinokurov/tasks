@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react"
 
 import { Button } from "@/shared/ui/button"
+import { Collapse } from "@/shared/ui/motion"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
 import {
@@ -34,12 +35,13 @@ export function AddTaskForm({ date }: { date: string }) {
           aria-invalid={Boolean(form.error)}
           className="h-10"
         />
-        <Button type="submit" size="lg" className="w-full shrink-0 sm:w-auto">
-          <Plus />
+        <Button type="submit" size="lg" className="w-full shrink-0 sm:w-auto" disabled={form.pending}>
+          <Plus className="transition-transform duration-300 ease-out-soft group-hover/button:rotate-90" />
           Добавить
         </Button>
       </div>
-      {form.error ? <p className="text-sm text-destructive">{form.error}</p> : null}
+      {form.error ? <p className="motion-rise text-sm text-destructive">{form.error}</p> : null}
+      <div className="grid">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Select value={form.groupId} onValueChange={form.setGroupId}>
           <SelectTrigger className="h-10 w-full sm:w-56" aria-label="Группа">
@@ -63,15 +65,16 @@ export function AddTaskForm({ date }: { date: string }) {
           {form.showNote ? "Скрыть пометку" : "Добавить пометку"}
         </Button>
       </div>
-      {form.showNote ? (
+      <Collapse open={form.showNote}>
         <Textarea
           value={form.note}
           onChange={(event) => form.setNote(event.target.value)}
           placeholder="Короткая пометка, если нужно"
           maxLength={form.noteLimit}
-          className="min-h-20"
+          className="mt-3 min-h-20"
         />
-      ) : null}
+      </Collapse>
+      </div>
     </form>
   )
 }

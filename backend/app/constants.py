@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 GROUP_COLORS = (
     "#3e6b56",
     "#d08a4c",
@@ -17,24 +15,13 @@ TASK_TITLE_MAX = 180
 TASK_NOTE_MAX = 2000
 THOUGHT_MAX = 4000
 GROUP_NAME_MAX = 40
+EMAIL_MAX = 254
+PASSWORD_MIN = 8
+PASSWORD_MAX = 72
+USER_NAME_MAX = 80
 
-INITIAL_GROUPS = (
-    {
-        "id": "personal",
-        "name": "Личное",
-        "color": GROUP_COLORS[0],
-        "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-    },
-    {
-        "id": "work",
-        "name": "Работа",
-        "color": GROUP_COLORS[1],
-        "created_at": datetime(2026, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
-    },
-    {
-        "id": "health",
-        "name": "Здоровье",
-        "color": GROUP_COLORS[2],
-        "created_at": datetime(2026, 1, 1, 0, 0, 2, tzinfo=timezone.utc),
-    },
+STARTER_GROUPS = (
+    {"name": "Личное", "color": GROUP_COLORS[0]},
+    {"name": "Работа", "color": GROUP_COLORS[1]},
+    {"name": "Здоровье", "color": GROUP_COLORS[2]},
 )

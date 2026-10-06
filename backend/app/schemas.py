@@ -1,3 +1,4 @@
+import re
 from datetime import date as Date
 from datetime import datetime
 from typing import Annotated
@@ -6,12 +7,18 @@ from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_valida
 from pydantic.alias_generators import to_camel
 
 from app.constants import (
+    EMAIL_MAX,
     GROUP_COLOR_SET,
     GROUP_NAME_MAX,
+    PASSWORD_MAX,
+    PASSWORD_MIN,
     TASK_NOTE_MAX,
     TASK_TITLE_MAX,
     THOUGHT_MAX,
+    USER_NAME_MAX,
 )
+
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 from app.support import to_utc_iso
 
 UtcDateTime = Annotated[datetime, PlainSerializer(to_utc_iso, return_type=str, when_used="json")]
@@ -203,3 +210,68 @@ class ThoughtRead(APIModel):
 
 class HealthRead(BaseModel):
     status: str = Field(examples=["ok"])
+
+
+def clean_email(value: str) -> str:
+    email = value.strip().lower()
+    if len(email) > EMAIL_MAX or _EMAIL.fullmatch(email) is None:
+        raise ValueError("Укажите почту, например anna@example.com")
+    return email
+
+
+def clean_password(value: str) -> str:
+    if len(value) < PASSWORD_MIN:
+        raise ValueError(f"Пароль не короче {PASSWORD_MIN} символов")
+    if len(value.encode()) > PASSWORD_MAX:
+        raise ValueError(f"Пароль не длиннее {PASSWORD_MAX} символов")
+    return value
+
+
+class UserRead(APIModel):
+    id: str
+    email: str
+    name: str
+
+
+class RegisterRequest(APIModel):
+    email: str
+    password: str
+    name: str = ""
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, value: str) -> str:
+        return clean_email(value)
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, value: str) -> str:
+        return clean_password(value)
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value: str) -> str:
+        name = value.strip()
+        if len(name) > USER_NAME_MAX:
+            raise ValueError(f"Имя не длиннее {USER_NAME_MAX} символов")
+        return name
+
+
+class LoginRequest(APIModel):
+    email: str
+    password: str
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, value: str) -> str:
+        return clean_email(value)
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, value: str) -> str:
+        return clean_password(value)
+
+
+class AuthRead(APIModel):
+    access_token: str
+    user: UserRead
