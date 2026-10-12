@@ -108,11 +108,10 @@ export function DateSwitcher() {
                     type="button"
                     onClick={() => date.selectDate(cell.iso)}
                     className={cn(
-                      "mx-auto flex size-8 items-center justify-center rounded-lg text-sm transition-colors duration-200",
+                      "glass mx-auto flex size-8 items-center justify-center rounded-lg text-sm",
                       cell.inMonth ? "text-foreground" : "text-muted-foreground/50",
-                      selected && "bg-primary text-primary-foreground",
+                      selected && "glass-tint text-primary-foreground",
                       !selected && isToday && "ring-1 ring-primary/50",
-                      !selected && "hover:bg-muted",
                     )}
                   >
                     {cell.day}

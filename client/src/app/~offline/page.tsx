@@ -11,7 +11,7 @@ export default function OfflinePage() {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+          className="glass glass-tint mt-6 inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium"
         >
           На главную
         </Link>

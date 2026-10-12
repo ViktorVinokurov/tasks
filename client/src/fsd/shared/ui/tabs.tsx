@@ -71,7 +71,7 @@ function TabsList({ className, children, ...props }: ComponentProps<typeof TabsP
       ref={listRef}
       data-slot="tabs-list"
       className={cn(
-        "relative inline-flex w-full items-center gap-1 rounded-2xl border border-white/50 bg-white/30 p-1 text-muted-foreground backdrop-blur-md sm:w-fit",
+        "glass relative inline-flex w-full items-center gap-1 rounded-2xl p-1 text-muted-foreground sm:w-fit",
         className,
       )}
       {...props}
@@ -79,7 +79,7 @@ function TabsList({ className, children, ...props }: ComponentProps<typeof TabsP
       {pill ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute top-0 left-0 rounded-xl border border-white/70 bg-white/75 shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] transition-[transform,width,height] duration-300 ease-out-soft"
+          className="glass pointer-events-none absolute top-0 left-0 rounded-xl transition-[transform,width,height] duration-300 ease-out-soft"
           style={{
             width: pill.width,
             height: pill.height,
