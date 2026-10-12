@@ -18,7 +18,7 @@ const PUBLIC_PATHS = new Set(["/login", "/~offline"])
 
 function Opening() {
   return (
-    <div className="grid min-h-dvh place-items-center bg-background px-6 text-center">
+    <div className="grid min-h-dvh place-items-center px-6 text-center">
       <div className="motion-rise">
         <span className="motion-breathe mx-auto grid size-14 place-items-center rounded-3xl bg-primary text-primary-foreground shadow-sm">
           <BookOpen className="size-6" />
@@ -111,7 +111,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
   }
   if (failedToken === token) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-background px-6 text-center">
+      <div className="grid min-h-dvh place-items-center px-6 text-center">
         <div className="motion-rise max-w-sm">
           <p className="text-2xl font-bold">Дневник не открылся</p>
           <p className="mt-2 text-sm text-muted-foreground">

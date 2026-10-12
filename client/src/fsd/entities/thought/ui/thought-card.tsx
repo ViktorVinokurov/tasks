@@ -11,7 +11,7 @@ type ThoughtCardProps = {
 
 export function ThoughtCard({ thought, menu }: ThoughtCardProps) {
   return (
-    <article className="rounded-2xl bg-background/80 px-4 py-3 transition-colors duration-200 hover:bg-background">
+    <article className="rounded-2xl border border-white/45 bg-white/35 px-4 py-3 backdrop-blur-md transition-colors duration-200 hover:bg-white/55">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-serif text-[15px] leading-6 text-foreground">{thought.text}</p>

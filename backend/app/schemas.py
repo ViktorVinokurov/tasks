@@ -3,7 +3,7 @@ from datetime import date as Date
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.constants import (
@@ -12,6 +12,8 @@ from app.constants import (
     GROUP_NAME_MAX,
     PASSWORD_MAX,
     PASSWORD_MIN,
+    SUBTASK_TITLE_MAX,
+    SUBTASKS_MAX,
     TASK_NOTE_MAX,
     TASK_TITLE_MAX,
     THOUGHT_MAX,
@@ -19,7 +21,7 @@ from app.constants import (
 )
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-from app.support import to_utc_iso
+from app.support import new_id, to_utc_iso
 
 UtcDateTime = Annotated[datetime, PlainSerializer(to_utc_iso, return_type=str, when_used="json")]
 
@@ -94,11 +96,50 @@ class GroupRead(APIModel):
     created_at: UtcDateTime
 
 
+class SubtaskWrite(APIModel):
+    id: str | None = None
+    title: str
+    completed: bool = False
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        return clean_required_text(
+            value,
+            empty="Напишите текст подзадачи",
+            limit=SUBTASK_TITLE_MAX,
+            limit_message=f"Подзадача не длиннее {SUBTASK_TITLE_MAX} символов",
+        )
+
+
+class SubtaskRead(APIModel):
+    id: str
+    title: str
+    completed: bool
+
+
+def prepare_subtasks(items: list[SubtaskWrite]) -> list[SubtaskWrite]:
+    if len(items) > SUBTASKS_MAX:
+        raise ValueError(f"Подзадач не больше {SUBTASKS_MAX}")
+    seen: set[str] = set()
+    prepared: list[SubtaskWrite] = []
+    for item in items:
+        item_id = (item.id or "").strip() or new_id()
+        if len(item_id) > 36 or any(char.isspace() for char in item_id):
+            raise ValueError("Некорректный идентификатор подзадачи")
+        if item_id in seen:
+            raise ValueError("Подзадачи повторяются")
+        seen.add(item_id)
+        prepared.append(SubtaskWrite(id=item_id, title=item.title, completed=item.completed))
+    return prepared
+
+
 class TaskCreate(APIModel):
     title: str
     note: str = ""
     date: Date
     group_id: str | None = None
+    subtasks: list[SubtaskWrite] = Field(default_factory=list)
 
     @field_validator("title")
     @classmethod
@@ -116,7 +157,7 @@ class TaskCreate(APIModel):
         text = clean_optional_text(
             value,
             limit=TASK_NOTE_MAX,
-            limit_message=f"Пометка не длиннее {TASK_NOTE_MAX} символов",
+            limit_message=f"Описание не длиннее {TASK_NOTE_MAX} символов",
         )
         return text or ""
 
@@ -125,6 +166,11 @@ class TaskCreate(APIModel):
     def empty_group(cls, value: object) -> object:
         return blank_to_none(value)
 
+    @model_validator(mode="after")
+    def check_subtasks(self) -> "TaskCreate":
+        self.subtasks = prepare_subtasks(self.subtasks)
+        return self
+
 
 class TaskUpdate(APIModel):
     title: str | None = None
@@ -132,6 +178,7 @@ class TaskUpdate(APIModel):
     date: Date | None = None
     group_id: str | None = None
     completed: bool | None = None
+    subtasks: list[SubtaskWrite] | None = None
 
     @field_validator("title")
     @classmethod
@@ -151,13 +198,19 @@ class TaskUpdate(APIModel):
         return clean_optional_text(
             value,
             limit=TASK_NOTE_MAX,
-            limit_message=f"Пометка не длиннее {TASK_NOTE_MAX} символов",
+            limit_message=f"Описание не длиннее {TASK_NOTE_MAX} символов",
         )
 
     @field_validator("group_id", mode="before")
     @classmethod
     def empty_group(cls, value: object) -> object:
         return blank_to_none(value)
+
+    @model_validator(mode="after")
+    def check_subtasks(self) -> "TaskUpdate":
+        if self.subtasks is not None:
+            self.subtasks = prepare_subtasks(self.subtasks)
+        return self
 
 
 class TaskRead(APIModel):
@@ -167,6 +220,7 @@ class TaskRead(APIModel):
     date: Date
     group_id: str | None
     completed: bool
+    subtasks: list[SubtaskRead] = Field(default_factory=list)
     created_at: UtcDateTime
     updated_at: UtcDateTime
 

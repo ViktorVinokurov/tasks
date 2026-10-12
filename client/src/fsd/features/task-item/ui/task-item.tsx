@@ -2,7 +2,7 @@
 
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 
-import { TaskRow } from "@/entities/task"
+import { SubtaskEditor, TaskRow } from "@/entities/task"
 import { Button } from "@/shared/ui/button"
 import {
   AlertDialog,
@@ -52,6 +52,10 @@ export function TaskItem({ task }: { task: Task }) {
         task={item.task}
         group={item.group}
         onToggle={item.toggle}
+        onSubtasksChange={(subtasks) => {
+          void item.changeSubtasks(subtasks)
+        }}
+        subtasksDisabled={item.pending}
         menu={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -81,7 +85,7 @@ export function TaskItem({ task }: { task: Task }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Изменить дело</DialogTitle>
-            <DialogDescription>Можно поправить текст, дату и группу.</DialogDescription>
+            <DialogDescription>Можно поправить текст, описание, подзадачи, дату и группу.</DialogDescription>
           </DialogHeader>
           <form onSubmit={item.onSave} className="grid gap-3">
             <div className="grid gap-1.5">
@@ -94,12 +98,19 @@ export function TaskItem({ task }: { task: Task }) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor={`task-note-${item.task.id}`}>Пометка</Label>
+              <Label htmlFor={`task-note-${item.task.id}`}>Описание</Label>
               <Textarea
                 id={`task-note-${item.task.id}`}
                 value={item.note}
                 onChange={(event) => item.setNote(event.target.value)}
                 maxLength={item.noteLimit}
+                placeholder="Что важно учесть"
+              />
+              <SubtaskEditor
+                items={item.subtasks}
+                onChange={item.setSubtasks}
+                disabled={item.pending}
+                startOpen
               />
             </div>
             <div className="grid items-end gap-3 sm:grid-cols-2">

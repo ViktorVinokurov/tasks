@@ -2,7 +2,7 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -43,7 +43,7 @@ def list_tasks(
         alias="groupId",
         description="Идентификатор группы, all — без фильтра, none — дела без группы",
     ),
-    q: str | None = Query(default=None, description="Поиск по названию и пометке"),
+    q: str | None = Query(default=None, description="Поиск по названию, описанию и подзадачам"),
     db: Session = Depends(get_db),
 ) -> list[Task]:
     stmt = select(Task).where(Task.user_id == user.id)
@@ -64,6 +64,7 @@ def list_tasks(
             or_(
                 func.lower(Task.title).like(pattern, escape="\\"),
                 func.lower(Task.note).like(pattern, escape="\\"),
+                func.lower(cast(Task.subtasks, String)).like(pattern, escape="\\"),
             )
         )
     stmt = stmt.order_by(Task.completed.asc(), Task.created_at.asc(), Task.id.asc())
@@ -82,6 +83,7 @@ def create_task(payload: TaskCreate, user: CurrentUser, db: Session = Depends(ge
         date=payload.date,
         group_id=group_id,
         completed=False,
+        subtasks=[item.model_dump() for item in payload.subtasks],
         created_at=now,
         updated_at=now,
     )
@@ -127,6 +129,11 @@ def update_task(
         if payload.completed is None:
             raise HTTPException(status_code=422, detail="Укажите, выполнено ли дело")
         task.completed = payload.completed
+        changed = True
+    if "subtasks" in fields:
+        if payload.subtasks is None:
+            raise HTTPException(status_code=422, detail="Укажите подзадачи")
+        task.subtasks = [item.model_dump() for item in payload.subtasks]
         changed = True
 
     if changed:

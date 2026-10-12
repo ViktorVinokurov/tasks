@@ -2,7 +2,7 @@ import Link from "next/link"
 
 export default function OfflinePage() {
   return (
-    <main className="grid min-h-dvh place-items-center bg-background px-6 text-center">
+    <main className="grid min-h-dvh place-items-center px-6 text-center">
       <div className="motion-rise max-w-md">
         <p className="text-sm font-semibold text-primary">Ежедневник</p>
         <h1 className="mt-2 text-3xl font-bold">Сейчас нет сети</h1>

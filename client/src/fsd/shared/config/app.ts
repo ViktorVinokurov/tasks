@@ -7,6 +7,8 @@ export const BACKGROUND_COLOR = "#f6f1ea"
 export const LIMITS = {
   taskTitle: 180,
   taskNote: 2000,
+  subtaskTitle: 120,
+  subtasks: 30,
   thought: 4000,
   groupName: 40,
   userName: 80,

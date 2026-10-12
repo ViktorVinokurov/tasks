@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-border/80 bg-background/80 backdrop-blur-md">
+      <header className="glass-panel glass-bar sticky top-0 z-30">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
           <Link href="/" className="group flex min-w-0 items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-transform duration-300 ease-out-soft group-hover:scale-105">
@@ -51,13 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </main>
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-card/95 backdrop-blur md:hidden"
+        className="glass-panel glass-bar-top fixed inset-x-0 bottom-0 z-30 md:hidden"
         aria-label="Разделы"
       >
         <div className="relative mx-auto max-w-lg px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <span
             aria-hidden
-            className="pointer-events-none absolute top-1 bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-2 w-[calc((100%-1rem)/3)] rounded-2xl bg-primary/10 transition-transform duration-300 ease-out-soft"
+            className="pointer-events-none absolute top-1 bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-2 w-[calc((100%-1rem)/3)] rounded-2xl border border-white/60 bg-white/45 shadow-[inset_0_1px_0_rgb(255_255_255/0.8)] transition-transform duration-300 ease-out-soft"
             style={{ transform: `translateX(${activeIndex * 100}%)` }}
           />
           <ul className="relative grid grid-cols-3">

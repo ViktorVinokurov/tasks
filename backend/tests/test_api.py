@@ -277,6 +277,74 @@ def test_thoughts_by_date(client):
     assert client.get(f"/api/thoughts/{thought_id}", headers=headers).status_code == 404
 
 
+def test_task_subtasks_and_progress_fields(client):
+    _, headers = register(client)
+    created = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={
+            "title": "Собрать отчёт",
+            "note": "К вечеру",
+            "date": "2026-10-12",
+            "subtasks": [
+                {"id": "step-1", "title": "  Цифры  ", "completed": False},
+                {"title": "черновик", "completed": True},
+            ],
+        },
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["note"] == "К вечеру"
+    assert body["subtasks"][0] == {"id": "step-1", "title": "Цифры", "completed": False}
+    assert body["subtasks"][1]["title"] == "черновик"
+    assert body["subtasks"][1]["completed"] is True
+    assert body["subtasks"][1]["id"]
+    task_id = body["id"]
+
+    plain = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={"title": "Без пунктов", "date": "2026-10-12"},
+    )
+    assert plain.status_code == 201
+    assert plain.json()["subtasks"] == []
+
+    toggled = client.patch(
+        f"/api/tasks/{task_id}",
+        headers=headers,
+        json={
+            "subtasks": [
+                {"id": "step-1", "title": "Цифры", "completed": True},
+                    {"id": body["subtasks"][1]["id"], "title": "черновик", "completed": True},
+            ]
+        },
+    )
+    assert toggled.status_code == 200
+    assert [item["completed"] for item in toggled.json()["subtasks"]] == [True, True]
+
+    found = client.get("/api/tasks", headers=headers, params={"q": "черновик"})
+    assert [item["title"] for item in found.json()] == ["Собрать отчёт"]
+
+    empty = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={"title": "Пустой шаг", "date": "2026-10-12", "subtasks": [{"title": "  "}]},
+    )
+    assert empty.status_code == 422
+
+    duplicate = client.patch(
+        f"/api/tasks/{task_id}",
+        headers=headers,
+        json={
+            "subtasks": [
+                {"id": "same", "title": "Один", "completed": False},
+                {"id": "same", "title": "Два", "completed": False},
+            ]
+        },
+    )
+    assert duplicate.status_code == 422
+
+
 def test_alembic_upgrade(tmp_path, monkeypatch):
     from alembic import command
     from alembic.config import Config

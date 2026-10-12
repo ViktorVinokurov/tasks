@@ -24,7 +24,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "group flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-input bg-card px-3 text-left text-sm shadow-xs outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:truncate",
+        "group flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/45 px-3 text-left text-sm shadow-[inset_0_1px_0_rgb(255_255_255/0.8)] outline-none backdrop-blur-md transition-colors duration-200 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:truncate",
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-72 min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg",
+          "glass-panel relative z-50 max-h-72 min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-hidden rounded-xl text-popover-foreground",
           popupMotionClass,
           className,
         )}

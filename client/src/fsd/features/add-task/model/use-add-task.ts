@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 
 import { selectGroups } from "@/entities/group"
 import { useDiaryApi } from "@/entities/session"
-import { addTask, type Task } from "@/entities/task"
+import { addTask, type Subtask, type Task } from "@/entities/task"
 import { ApiError } from "@/shared/api/client"
 import { LIMITS } from "@/shared/config/app"
 
@@ -17,8 +17,8 @@ export function useAddTask(date: string) {
   const groups = useSelector(selectGroups)
   const [title, setTitle] = useState("")
   const [note, setNote] = useState("")
+  const [subtasks, setSubtasks] = useState<Subtask[]>([])
   const [groupId, setGroupId] = useState<string>(NONE)
-  const [showNote, setShowNote] = useState(false)
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
 
@@ -39,12 +39,13 @@ export function useAddTask(date: string) {
           note: note.trim(),
           date,
           groupId: groupId === NONE ? null : groupId,
+          subtasks,
         },
       })
       dispatch(addTask(task))
       setTitle("")
       setNote("")
-      setShowNote(false)
+      setSubtasks([])
       setError("")
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "Не удалось сохранить дело")
@@ -56,9 +57,9 @@ export function useAddTask(date: string) {
   return {
     title,
     note,
+    subtasks,
     groupId,
     groups,
-    showNote,
     error,
     pending,
     noneValue: NONE,
@@ -72,7 +73,7 @@ export function useAddTask(date: string) {
       setNote(value.slice(0, LIMITS.taskNote))
     },
     setGroupId,
-    setShowNote,
+    setSubtasks,
     onSubmit,
   }
 }

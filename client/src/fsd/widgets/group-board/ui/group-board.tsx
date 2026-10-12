@@ -39,7 +39,7 @@ export function GroupBoard() {
         items={board.cards.map(({ group, caption }) => ({
           id: group.id,
           content: (
-            <Card className="transition-shadow duration-300 hover:shadow-[0_18px_40px_-24px_rgba(62,48,32,0.45)]">
+            <Card className="transition-transform duration-300 ease-out-soft hover:-translate-y-0.5">
               <CardHeader className="flex-row items-center justify-between gap-3 pb-5">
                 <div className="min-w-0">
                   <CardTitle className="flex items-center gap-2">

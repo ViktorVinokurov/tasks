@@ -2,8 +2,8 @@
 
 import { Plus } from "lucide-react"
 
+import { SubtaskEditor } from "@/entities/task"
 import { Button } from "@/shared/ui/button"
-import { Collapse } from "@/shared/ui/motion"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
 import {
@@ -41,39 +41,35 @@ export function AddTaskForm({ date }: { date: string }) {
         </Button>
       </div>
       {form.error ? <p className="motion-rise text-sm text-destructive">{form.error}</p> : null}
-      <div className="grid">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Select value={form.groupId} onValueChange={form.setGroupId}>
-          <SelectTrigger className="h-10 w-full sm:w-56" aria-label="Группа">
-            <SelectValue placeholder="Группа" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={form.noneValue}>Без группы</SelectItem>
-            {form.groups.map((group) => (
-              <SelectItem key={group.id} value={group.id}>
-                {group.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-10 w-full sm:w-auto"
-          onClick={() => form.setShowNote(!form.showNote)}
-        >
-          {form.showNote ? "Скрыть пометку" : "Добавить пометку"}
-        </Button>
-      </div>
-      <Collapse open={form.showNote}>
+      <Select value={form.groupId} onValueChange={form.setGroupId}>
+        <SelectTrigger className="h-10 w-full sm:w-56" aria-label="Группа">
+          <SelectValue placeholder="Группа" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={form.noneValue}>Без группы</SelectItem>
+          {form.groups.map((group) => (
+            <SelectItem key={group.id} value={group.id}>
+              {group.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="grid gap-1.5">
+        <Label htmlFor="task-note">Описание</Label>
         <Textarea
+          id="task-note"
           value={form.note}
           onChange={(event) => form.setNote(event.target.value)}
-          placeholder="Короткая пометка, если нужно"
+          placeholder="Что важно учесть"
           maxLength={form.noteLimit}
-          className="mt-3 min-h-20"
+          className="min-h-20"
         />
-      </Collapse>
+        <SubtaskEditor
+          items={form.subtasks}
+          onChange={form.setSubtasks}
+          disabled={form.pending}
+          startOpen
+        />
       </div>
     </form>
   )

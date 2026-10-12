@@ -3,6 +3,7 @@ import { Literata, Nunito } from "next/font/google"
 
 import { AppProviders } from "@/app/providers"
 import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/shared/config/app"
+import { LiquidBackdrop } from "@/shared/ui/liquid-backdrop"
 
 import "./globals.css"
 
@@ -55,7 +56,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ru"
       className={`${nunito.variable} ${literata.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <body className="isolate min-h-full font-sans text-foreground">
+        <LiquidBackdrop />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

@@ -36,7 +36,8 @@ export function useTaskFilters() {
         return false
       }
       if (!needle) return true
-      return `${task.title} ${task.note}`.toLowerCase().includes(needle)
+      const subtaskText = (task.subtasks ?? []).map((item) => item.title).join(" ")
+      return `${task.title} ${task.note} ${subtaskText}`.toLowerCase().includes(needle)
     })
   }, [groupId, query, status, tasks])
 

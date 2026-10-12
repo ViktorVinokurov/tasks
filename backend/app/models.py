@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, false
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, String, false
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -51,6 +52,11 @@ class Task(Base):
         index=True,
     )
     completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
+    subtasks: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+        default=list,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

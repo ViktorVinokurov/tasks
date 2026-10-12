@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 
 import { selectGroupById, selectGroups } from "@/entities/group"
 import { useDiaryApi } from "@/entities/session"
-import { deleteTask, updateTask, type Task } from "@/entities/task"
+import { deleteTask, updateTask, type Subtask, type Task } from "@/entities/task"
 import { ApiError } from "@/shared/api/client"
 import { LIMITS } from "@/shared/config/app"
 
@@ -22,6 +22,7 @@ export function useTaskItem(task: Task) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [note, setNote] = useState(task.note)
+  const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks ?? [])
   const [date, setDate] = useState(task.date)
   const [groupId, setGroupId] = useState(task.groupId ?? NONE)
   const [error, setError] = useState("")
@@ -31,6 +32,7 @@ export function useTaskItem(task: Task) {
   function openEditor() {
     setTitle(task.title)
     setNote(task.note)
+    setSubtasks((task.subtasks ?? []).map((item) => ({ ...item })))
     setDate(task.date)
     setGroupId(task.groupId ?? NONE)
     setError("")
@@ -59,6 +61,7 @@ export function useTaskItem(task: Task) {
           note: note.trim(),
           date,
           groupId: groupId === NONE ? null : groupId,
+          subtasks,
         },
       })
       dispatch(updateTask(updated))
@@ -79,6 +82,7 @@ export function useTaskItem(task: Task) {
     confirmDelete,
     title,
     note,
+    subtasks,
     date,
     groupId,
     error,
@@ -97,8 +101,25 @@ export function useTaskItem(task: Task) {
     setNote(value: string) {
       setNote(value.slice(0, LIMITS.taskNote))
     },
+    setSubtasks,
     setDate,
     setGroupId,
+    async changeSubtasks(next: Subtask[]) {
+      if (pending) return
+      setPending(true)
+      setActionError("")
+      try {
+        const updated = await request<Task>(`/api/tasks/${task.id}`, {
+          method: "PATCH",
+          body: { subtasks: next },
+        })
+        dispatch(updateTask(updated))
+      } catch (reason) {
+        setActionError(reason instanceof ApiError ? reason.message : "Не удалось сохранить подзадачи")
+      } finally {
+        setPending(false)
+      }
+    },
     async toggle() {
       setActionError("")
       try {

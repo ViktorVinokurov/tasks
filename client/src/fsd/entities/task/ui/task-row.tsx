@@ -3,21 +3,35 @@
 import { Check } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
-import type { Task } from "../model/types"
+import { formatTime } from "@/shared/lib/date"
 import { cn } from "@/shared/lib/utils"
+
+import type { Subtask, Task } from "../model/types"
+import { SubtaskEditor } from "./subtask-editor"
 
 type TaskRowProps = {
   task: Task
   group: { name: string; color: string } | null
   onToggle: () => void
+  onSubtasksChange: (subtasks: Subtask[]) => void
+  subtasksDisabled?: boolean
   menu?: ReactNode
 }
 
-export function TaskRow({ task, group, onToggle, menu }: TaskRowProps) {
+export function TaskRow({
+  task,
+  group,
+  onToggle,
+  onSubtasksChange,
+  subtasksDisabled,
+  menu,
+}: TaskRowProps) {
+  const subtasks = task.subtasks ?? []
+
   return (
     <article
       className={cn(
-        "flex items-center gap-3 rounded-2xl border border-transparent px-2 py-2 transition-[background-color,border-color,opacity] duration-200 hover:border-border hover:bg-background/70",
+        "flex items-start gap-3 rounded-2xl border border-white/35 bg-white/25 px-2 py-2 backdrop-blur-sm transition-[background-color,border-color,opacity] duration-200 hover:border-white/70 hover:bg-white/40",
         task.completed && "opacity-70",
       )}
     >
@@ -31,11 +45,9 @@ export function TaskRow({ task, group, onToggle, menu }: TaskRowProps) {
         >
           {task.title}
         </p>
-        {task.note ? (
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{task.note}</p>
-        ) : null}
-        {group ? (
-          <div className="mt-1.5 flex items-center text-xs leading-4 text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-4 text-muted-foreground">
+          <time dateTime={task.createdAt}>создано в {formatTime(task.createdAt)}</time>
+          {group ? (
             <span className="inline-flex min-w-0 items-center gap-1.5">
               <span
                 className="size-2.5 shrink-0 rounded-full"
@@ -44,10 +56,18 @@ export function TaskRow({ task, group, onToggle, menu }: TaskRowProps) {
               />
               <span className="truncate">{group.name}</span>
             </span>
-          </div>
+          ) : null}
+        </div>
+        {task.note ? (
+          <p className="mt-1.5 text-sm leading-5 whitespace-pre-wrap text-muted-foreground">{task.note}</p>
         ) : null}
+        <SubtaskEditor
+          items={subtasks}
+          onChange={onSubtasksChange}
+          disabled={subtasksDisabled}
+        />
       </div>
-      {menu ? <div className="flex shrink-0 items-center self-center">{menu}</div> : null}
+      {menu ? <div className="flex shrink-0 items-center">{menu}</div> : null}
     </article>
   )
 }
@@ -69,7 +89,7 @@ function CompleteToggle({ completed, onToggle }: { completed: boolean; onToggle:
       aria-label={completed ? "Вернуть в дела" : "Отметить выполненным"}
       onClick={onToggle}
       className={cn(
-        "grid size-6 shrink-0 place-items-center rounded-full border transition-colors duration-200",
+        "mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border transition-colors duration-200",
         completed
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-transparent hover:border-primary",

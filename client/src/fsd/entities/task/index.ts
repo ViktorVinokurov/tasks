@@ -9,5 +9,6 @@ export {
   tasksReducer,
   updateTask,
 } from "./model/slice"
-export type { Task, TaskDraft } from "./model/types"
+export type { Subtask, Task, TaskDraft } from "./model/types"
+export { SubtaskEditor } from "./ui/subtask-editor"
 export { TaskRow } from "./ui/task-row"

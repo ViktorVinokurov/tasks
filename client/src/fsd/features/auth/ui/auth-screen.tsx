@@ -15,7 +15,7 @@ export function AuthScreen() {
   const form = useAuthForm()
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-background px-4 py-10">
+    <div className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="motion-rise w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <span className="grid size-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">

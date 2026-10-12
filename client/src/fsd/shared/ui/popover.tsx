@@ -27,7 +27,7 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 w-fit origin-(--radix-popover-content-transform-origin) rounded-2xl border border-border bg-popover p-3 text-popover-foreground shadow-lg outline-none",
+          "glass-panel z-50 w-fit origin-(--radix-popover-content-transform-origin) rounded-2xl p-3 text-popover-foreground outline-none",
           popupMotionClass,
           className,
         )}
