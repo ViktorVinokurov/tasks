@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 
 import { SessionMenu } from "@/features/auth"
+import { ThemeSwitch } from "@/features/switch-theme"
 import { cn } from "@/shared/lib/utils"
 
 import { useAppNav } from "../model/use-app-nav"
@@ -24,8 +25,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh">
       <header className="glass-panel glass-bar sticky top-0 z-30">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
-          <Link href="/" className="glass group flex min-w-0 items-center gap-3 rounded-2xl px-2 py-1">
-            <span className="glass glass-tint grid size-10 shrink-0 place-items-center rounded-2xl transition-transform duration-300 ease-out-soft group-hover:scale-105">
+          <Link href="/" className="group flex min-w-0 items-center gap-3">
+            <span className="glass glass-tint grid size-10 shrink-0 place-items-center rounded-full transition-transform duration-200 ease-out-soft group-hover:scale-105">
               <BookOpen className="size-5" />
             </span>
             <span className="min-w-0 leading-tight">
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <DesktopNav items={items} />
+            <ThemeSwitch />
             <SessionMenu />
           </div>
         </div>

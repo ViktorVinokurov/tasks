@@ -105,7 +105,7 @@ export function SubtaskEditor({
                   "grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-200",
                   item.completed
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-white/80 bg-white/50 text-transparent hover:border-primary",
+                    : "border-border bg-transparent text-transparent hover:border-primary",
                 )}
               >
                 <Check

@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next"
 import { Literata, Nunito } from "next/font/google"
 
 import { AppProviders } from "@/app/providers"
-import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/shared/config/app"
+import { THEME_BOOT } from "@/features/switch-theme"
+import { APP_DESCRIPTION, APP_NAME } from "@/shared/config/app"
 import { LiquidBackdrop } from "@/shared/ui/liquid-backdrop"
 
 import "./globals.css"
@@ -42,12 +43,15 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: THEME_COLOR,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f1ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#221e1b" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  colorScheme: "light",
+  colorScheme: "light dark",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -55,7 +59,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ru"
       className={`${nunito.variable} ${literata.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="isolate min-h-full font-sans text-foreground">
         <LiquidBackdrop />
         <AppProviders>{children}</AppProviders>

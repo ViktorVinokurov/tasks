@@ -31,7 +31,7 @@ export function TaskRow({
   return (
     <article
       className={cn(
-        "flex items-start gap-3 rounded-2xl border border-white/35 bg-white/25 px-2 py-2 backdrop-blur-sm transition-[background-color,border-color,opacity] duration-200 hover:border-white/70 hover:bg-white/40",
+        "flex items-start gap-3 rounded-2xl px-2 py-2 transition-colors duration-200 hover:bg-foreground/5",
         task.completed && "opacity-70",
       )}
     >

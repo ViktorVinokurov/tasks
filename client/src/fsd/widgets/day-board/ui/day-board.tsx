@@ -84,7 +84,7 @@ export function DayBoard() {
                   content: <ThoughtItem thought={thought} />,
                 }))}
                 empty={
-                  <p className="rounded-2xl border border-white/45 bg-white/35 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  <p className="rounded-2xl bg-foreground/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
                     Здесь пока тихо. Одной фразы уже достаточно.
                   </p>
                 }
@@ -106,7 +106,7 @@ export function DayBoard() {
                 itemClassName="pb-1"
                 items={taskRows}
                 empty={
-                  <p className="rounded-2xl border border-white/45 bg-white/35 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  <p className="rounded-2xl bg-foreground/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
                     На этот день пока пусто. Добавьте одно маленькое дело — и день станет понятнее.
                   </p>
                 }

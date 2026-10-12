@@ -3,7 +3,6 @@
 import { Search } from "lucide-react"
 import type { ReactNode } from "react"
 
-import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs"
@@ -97,7 +96,7 @@ function FilterChip({
       size="sm"
       variant={active ? "default" : "outline"}
       onClick={onClick}
-      className={cn("h-8 gap-1.5 rounded-full", !active && "bg-card")}
+      className="h-8 gap-1.5 rounded-full"
     >
       {children}
     </Button>
