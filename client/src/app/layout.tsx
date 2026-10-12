@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Literata, Nunito } from "next/font/google"
 
 import { AppProviders } from "@/app/providers"
-import { THEME_BOOT } from "@/features/switch-theme"
+import { THEME_BOOT } from "@/features/switch-theme/model/theme"
 import { APP_DESCRIPTION, APP_NAME } from "@/shared/config/app"
 import { LiquidBackdrop } from "@/shared/ui/liquid-backdrop"
 

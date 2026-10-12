@@ -33,7 +33,7 @@ export function ThemeSwitch() {
       <DropdownMenuContent align="end">
         {OPTIONS.map((option) => (
           <DropdownMenuItem key={option.mode} onSelect={() => theme.setMode(option.mode)}>
-            <Check className={option.mode === theme.mode ? "opacity-100" : "opacity-0"} />
+            <Check className={option.mode === theme.mode ? "size-4 opacity-100" : "size-4 opacity-0"} />
             {option.label}
           </DropdownMenuItem>
         ))}

@@ -2,7 +2,6 @@
 
 import { BookOpen } from "lucide-react"
 
-import { ThemeSwitch } from "@/features/switch-theme"
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Collapse, MotionSwap } from "@/shared/ui/motion"
@@ -16,10 +15,7 @@ export function AuthScreen() {
   const form = useAuthForm()
 
   return (
-    <div className="relative grid min-h-dvh place-items-center px-4 py-10">
-      <div className="absolute top-4 right-4">
-        <ThemeSwitch />
-      </div>
+    <div className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="motion-rise w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <span className="glass glass-tint grid size-11 place-items-center rounded-2xl">

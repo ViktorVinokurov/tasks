@@ -10,6 +10,8 @@ export function useTheme() {
 
   useLayoutEffect(() => {
     const stored = readTheme()
+    // Тема лежит в localStorage и недоступна при серверном рендере.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- один раз после монтирования
     setModeState(stored)
     setDark(applyTheme(stored))
   }, [])

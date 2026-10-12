@@ -62,16 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     href={item.href}
                     aria-current={item.active ? "page" : undefined}
                     className={cn(
-                      "glass flex h-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs leading-none font-semibold",
-                      item.active ? "glass-tint text-primary-foreground" : "text-muted-foreground",
+                      "flex h-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs leading-none font-semibold",
+                      item.active ? "glass glass-tint text-primary-foreground" : "text-muted-foreground",
                     )}
                   >
-                    <Icon
-                      className={cn(
-                        "size-5 transition-transform duration-300 ease-out-soft",
-                        item.active && "scale-110",
-                      )}
-                    />
+                    <Icon className="size-5" />
                     {item.label}
                   </Link>
                 </li>
@@ -93,8 +88,10 @@ function DesktopNav({ items }: { items: ReturnType<typeof useAppNav> }) {
           href={item.href}
           aria-current={item.active ? "page" : undefined}
           className={cn(
-            "glass rounded-full px-3 py-1.5 text-sm font-semibold",
-            item.active ? "glass-tint text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            "rounded-full px-3 py-1.5 text-sm font-semibold",
+            item.active
+              ? "glass glass-tint text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {item.label}
