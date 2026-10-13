@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, groups, tasks, thoughts
+from app.routers import auth, groups, push, tasks, thoughts, users
 from app.schemas import HealthRead
 
 
@@ -23,6 +23,8 @@ def create_app() -> FastAPI:
     app.include_router(groups.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(thoughts.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
+    app.include_router(push.router, prefix="/api")
 
     @app.get("/health", response_model=HealthRead, tags=["Служебное"])
     def health() -> HealthRead:

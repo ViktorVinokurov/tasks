@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import CurrentUser
 from app.models import User
-from app.schemas import AuthRead, LoginRequest, RegisterRequest, UserRead
+from app.schemas import AuthRead, LoginRequest, PasswordChange, ProfileUpdate, RegisterRequest, UserRead
 from app.security import create_access_token, hash_password, verify_password
 from app.seed import seed_groups_for_user
 from app.support import new_id, utcnow
@@ -61,3 +61,27 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthRead:
 @router.get("/me", response_model=UserRead)
 def me(user: CurrentUser) -> User:
     return user
+
+
+@router.patch("/me", response_model=UserRead)
+def update_me(payload: ProfileUpdate, user: CurrentUser, db: Session = Depends(get_db)) -> User:
+    user.name = payload.name
+    user.avatar = payload.avatar
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/password", status_code=204)
+def change_password(
+    payload: PasswordChange,
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> Response:
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=422, detail="Неверный текущий пароль")
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=422, detail="Новый пароль совпадает с текущим")
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return Response(status_code=204)

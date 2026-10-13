@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { selectGroupById, selectGroups } from "@/entities/group"
-import { useDiaryApi } from "@/entities/session"
+import { useDiaryApi, type DirectoryUser } from "@/entities/session"
 import { deleteTask, updateTask, type Subtask, type Task } from "@/entities/task"
 import { ApiError } from "@/shared/api/client"
 import { LIMITS } from "@/shared/config/app"
@@ -20,6 +20,12 @@ export function useTaskItem(task: Task) {
   )
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [people, setPeople] = useState<DirectoryUser[]>([])
+  const [selected, setSelected] = useState<DirectoryUser | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [transferError, setTransferError] = useState("")
   const [title, setTitle] = useState(task.title)
   const [note, setNote] = useState(task.note)
   const [subtasks, setSubtasks] = useState<Subtask[]>(task.subtasks ?? [])
@@ -38,6 +44,47 @@ export function useTaskItem(task: Task) {
     setError("")
     setEditing(true)
   }
+
+  function openTransfer() {
+    setQuery("")
+    setPeople([])
+    setSelected(null)
+    setSearching(false)
+    setTransferError("")
+    setTransferOpen(true)
+  }
+
+  useEffect(() => {
+    if (!transferOpen) return
+    const needle = query.trim()
+    if (!needle) return
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setSearching(true)
+      request<DirectoryUser[]>(`/api/users?q=${encodeURIComponent(needle)}`)
+        .then((found) => {
+          if (!cancelled) {
+            setPeople(found)
+            setTransferError("")
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPeople([])
+            setTransferError("Не удалось найти пользователей")
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false)
+        })
+    }, 250)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [query, request, transferOpen])
 
   async function onSave(event: FormEvent) {
     event.preventDefault()
@@ -80,6 +127,12 @@ export function useTaskItem(task: Task) {
     groups,
     editing,
     confirmDelete,
+    transferOpen,
+    query,
+    people,
+    selectedId: selected?.id ?? null,
+    searching,
+    transferError,
     title,
     note,
     subtasks,
@@ -94,6 +147,21 @@ export function useTaskItem(task: Task) {
     setEditing,
     openEditor,
     setConfirmDelete,
+    setTransferOpen,
+    openTransfer,
+    setQuery(value: string) {
+      setQuery(value)
+      setSelected(null)
+      if (!value.trim()) {
+        setPeople([])
+        setSearching(false)
+      }
+      if (transferError) setTransferError("")
+    },
+    selectPerson(person: DirectoryUser) {
+      setSelected(person)
+      setTransferError("")
+    },
     setTitle(value: string) {
       setTitle(value.slice(0, LIMITS.taskTitle))
       if (error) setError("")
@@ -127,6 +195,29 @@ export function useTaskItem(task: Task) {
         dispatch(updateTask(updated))
       } catch (reason) {
         setActionError(reason instanceof ApiError ? reason.message : "Не удалось отметить дело")
+      }
+    },
+    async transfer(event: FormEvent) {
+      event.preventDefault()
+      if (pending) return
+      if (!selected) {
+        setTransferError("Выберите пользователя")
+        return
+      }
+
+      setPending(true)
+      setTransferError("")
+      try {
+        await request<Task>(`/api/tasks/${task.id}/transfer`, {
+          method: "POST",
+          body: { userId: selected.id },
+        })
+        dispatch(deleteTask(task.id))
+        setTransferOpen(false)
+      } catch (reason) {
+        setTransferError(reason instanceof ApiError ? reason.message : "Не удалось передать дело")
+      } finally {
+        setPending(false)
       }
     },
     async remove() {

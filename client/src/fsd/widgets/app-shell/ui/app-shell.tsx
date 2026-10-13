@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 
 import { SessionMenu } from "@/features/auth"
+import { PushToggle } from "@/features/enable-push"
 import { ThemeSwitch } from "@/features/switch-theme"
 import { cn } from "@/shared/lib/utils"
 
@@ -38,6 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <DesktopNav items={items} />
+            <PushToggle />
             <ThemeSwitch />
             <SessionMenu />
           </div>

@@ -7,11 +7,14 @@ from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_valida
 from pydantic.alias_generators import to_camel
 
 from app.constants import (
+    AVATAR_MAX,
     EMAIL_MAX,
     GROUP_COLOR_SET,
     GROUP_NAME_MAX,
     PASSWORD_MAX,
     PASSWORD_MIN,
+    PUSH_ENDPOINT_MAX,
+    PUSH_KEY_MAX,
     SUBTASK_TITLE_MAX,
     SUBTASKS_MAX,
     TASK_NOTE_MAX,
@@ -21,6 +24,7 @@ from app.constants import (
 )
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_AVATAR = re.compile(r"^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=\s]+$")
 from app.support import new_id, to_utc_iso
 
 UtcDateTime = Annotated[datetime, PlainSerializer(to_utc_iso, return_type=str, when_used="json")]
@@ -225,6 +229,18 @@ class TaskRead(APIModel):
     updated_at: UtcDateTime
 
 
+class TaskTransfer(APIModel):
+    user_id: str
+
+    @field_validator("user_id")
+    @classmethod
+    def check_user_id(cls, value: str) -> str:
+        user_id = value.strip()
+        if not user_id or len(user_id) > 36 or any(char.isspace() for char in user_id):
+            raise ValueError("Выберите пользователя")
+        return user_id
+
+
 class ThoughtCreate(APIModel):
     text: str
     date: Date
@@ -266,11 +282,61 @@ class HealthRead(BaseModel):
     status: str = Field(examples=["ok"])
 
 
+class PushKeys(APIModel):
+    p256dh: str
+    auth: str
+
+    @field_validator("p256dh", "auth")
+    @classmethod
+    def check_key(cls, value: str) -> str:
+        text = value.strip()
+        if not text or len(text) > PUSH_KEY_MAX:
+            raise ValueError("Некорректная подписка на уведомления")
+        return text
+
+
+class PushSubscriptionWrite(APIModel):
+    endpoint: str
+    keys: PushKeys
+
+    @field_validator("endpoint")
+    @classmethod
+    def check_endpoint(cls, value: str) -> str:
+        text = value.strip()
+        if not text.startswith("https://") or len(text) > PUSH_ENDPOINT_MAX or any(char.isspace() for char in text):
+            raise ValueError("Некорректный адрес уведомлений")
+        return text
+
+
+class PushSubscriptionDelete(APIModel):
+    endpoint: str
+
+    @field_validator("endpoint")
+    @classmethod
+    def check_endpoint(cls, value: str) -> str:
+        text = value.strip()
+        if not text or len(text) > PUSH_ENDPOINT_MAX:
+            raise ValueError("Некорректный адрес уведомлений")
+        return text
+
+
+class VapidRead(APIModel):
+    public_key: str
+
+
 def clean_email(value: str) -> str:
     email = value.strip().lower()
     if len(email) > EMAIL_MAX or _EMAIL.fullmatch(email) is None:
         raise ValueError("Укажите почту, например anna@example.com")
     return email
+
+
+def clean_avatar(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if len(value) > AVATAR_MAX or _AVATAR.fullmatch(value) is None:
+        raise ValueError("Выберите фото в формате JPEG, PNG или WebP")
+    return value
 
 
 def clean_password(value: str) -> str:
@@ -285,6 +351,48 @@ class UserRead(APIModel):
     id: str
     email: str
     name: str
+    avatar: str | None = None
+
+
+class UserSearchRead(APIModel):
+    id: str
+    name: str
+    avatar: str | None = None
+
+
+class ProfileUpdate(APIModel):
+    name: str
+    avatar: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value: str) -> str:
+        return clean_required_text(
+            value,
+            empty="Укажите ФИО",
+            limit=USER_NAME_MAX,
+            limit_message=f"ФИО не длиннее {USER_NAME_MAX} символов",
+        )
+
+    @field_validator("avatar", mode="before")
+    @classmethod
+    def empty_avatar(cls, value: object) -> object:
+        return blank_to_none(value)
+
+    @field_validator("avatar")
+    @classmethod
+    def check_avatar(cls, value: str | None) -> str | None:
+        return clean_avatar(value)
+
+
+class PasswordChange(APIModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password(cls, value: str) -> str:
+        return clean_password(value)
 
 
 class RegisterRequest(APIModel):

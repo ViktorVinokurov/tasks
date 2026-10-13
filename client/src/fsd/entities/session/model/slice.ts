@@ -20,6 +20,9 @@ const sessionSlice = createSlice({
       state.token = action.payload.token
       state.user = action.payload.user
     },
+    updateUser(state, action: PayloadAction<SessionUser>) {
+      state.user = action.payload
+    },
     clearSession(state) {
       state.token = null
       state.user = null
@@ -28,4 +31,4 @@ const sessionSlice = createSlice({
 })
 
 export const sessionReducer = sessionSlice.reducer
-export const { setSession, clearSession } = sessionSlice.actions
+export const { setSession, updateUser, clearSession } = sessionSlice.actions

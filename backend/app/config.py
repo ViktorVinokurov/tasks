@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     jwt_secret: str = "dev-only-change-me"
     jwt_ttl_days: int = 30
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:diary@localhost"
 
     @property
     def cors_origin_list(self) -> list[str]:

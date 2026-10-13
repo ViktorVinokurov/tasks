@@ -6,7 +6,7 @@ import { BookOpen } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 
 import { clearGroups, setGroups, type Group } from "@/entities/group"
-import { clearSession, selectToken } from "@/entities/session"
+import { clearSession, selectToken, updateUser, type SessionUser } from "@/entities/session"
 import { clearTasks, setTasks, type Task } from "@/entities/task"
 import { clearThoughts, setThoughts, type Thought } from "@/entities/thought"
 import { ApiError, apiRequest } from "@/shared/api/client"
@@ -57,12 +57,14 @@ export function SessionGate({ children }: { children: ReactNode }) {
 
     async function load() {
       try {
-        const [groups, tasks, thoughts] = await Promise.all([
+        const [groups, tasks, thoughts, me] = await Promise.all([
           apiRequest<Group[]>("/api/groups", { token: accessToken }),
           apiRequest<Task[]>("/api/tasks", { token: accessToken }),
           apiRequest<Thought[]>("/api/thoughts", { token: accessToken }),
+          apiRequest<SessionUser>("/api/auth/me", { token: accessToken }),
         ])
         if (cancelled) return
+        dispatch(updateUser(me))
 
         if (tasks.length === 0 && thoughts.length === 0) {
           const imported = await importLocalDiary(accessToken, groups)

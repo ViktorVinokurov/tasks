@@ -18,6 +18,9 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-diary}:${POSTGRES_PASSWORD:-diary}@db:5432/${POSTGRES_DB:-diary}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:diary@localhost}
     depends_on:
       db:
         condition: service_healthy

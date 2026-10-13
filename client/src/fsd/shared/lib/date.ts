@@ -5,6 +5,13 @@ export function toISODate(date: Date) {
   return `${year}-${month}-${day}`
 }
 
+export function isISODate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const { year, month, day } = parseISODate(iso)
+  const date = new Date(year, month, day)
+  return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day
+}
+
 export function parseISODate(iso: string) {
   const [year, month, day] = iso.split("-").map(Number)
   return { year, month: month - 1, day }

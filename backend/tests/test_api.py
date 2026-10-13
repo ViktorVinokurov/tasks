@@ -23,6 +23,8 @@ def test_diary_requires_login(client):
     assert client.get("/api/groups").status_code == 401
     assert client.get("/api/tasks").status_code == 401
     assert client.get("/api/thoughts").status_code == 401
+    assert client.get("/api/users", params={"q": "аня"}).status_code == 401
+    assert client.patch("/api/auth/me", json={"name": "Аня"}).status_code == 401
     assert client.post("/api/tasks", json={"title": "Скрытое", "date": "2026-10-06"}).status_code == 401
 
 
@@ -343,6 +345,436 @@ def test_task_subtasks_and_progress_fields(client):
         },
     )
     assert duplicate.status_code == 422
+
+
+def test_transfer_task_copies_missing_group(client):
+    _, anya = register(client)
+    boris_account, boris = register(client, email="boris@example.com", name="Борис")
+    boris_id = boris_account["user"]["id"]
+
+    created_group = client.post(
+        "/api/groups",
+        headers=anya,
+        json={"name": "Проект", "color": "#8a6aad"},
+    )
+    assert created_group.status_code == 201
+    group = created_group.json()
+
+    task = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={
+            "title": "Сдать макет",
+            "note": "к пятнице",
+            "date": "2026-10-13",
+            "groupId": group["id"],
+            "subtasks": [{"title": "черновик", "completed": True}],
+        },
+    )
+    assert task.status_code == 201
+    task_id = task.json()["id"]
+    toggled = client.post(f"/api/tasks/{task_id}/toggle", headers=anya)
+    assert toggled.status_code == 200
+
+    moved = client.post(
+        f"/api/tasks/{task_id}/transfer",
+        headers=anya,
+        json={"userId": boris_id},
+    )
+    assert moved.status_code == 200, moved.text
+    body = moved.json()
+    assert body["id"] == task_id
+    assert body["title"] == "Сдать макет"
+    assert body["note"] == "к пятнице"
+    assert body["date"] == "2026-10-13"
+    assert body["completed"] is True
+    assert body["subtasks"][0]["title"] == "черновик"
+    assert body["groupId"] != group["id"]
+
+    assert client.get(f"/api/tasks/{task_id}", headers=anya).status_code == 404
+    assert client.get("/api/tasks", headers=anya).json() == []
+    assert client.get(f"/api/groups/{group['id']}", headers=anya).status_code == 200
+
+    received = client.get(f"/api/tasks/{task_id}", headers=boris)
+    assert received.status_code == 200
+    assert received.json()["groupId"] == body["groupId"]
+
+    copied = next(item for item in client.get("/api/groups", headers=boris).json() if item["name"] == "Проект")
+    assert copied["id"] == body["groupId"]
+    assert copied["color"] == "#8a6aad"
+
+
+def test_transfer_reuses_group_and_rejects_bad_targets(client):
+    anya_account, anya = register(client)
+    boris_account, boris = register(client, email="boris@example.com", name="Борис")
+    anya_id = anya_account["user"]["id"]
+    boris_id = boris_account["user"]["id"]
+    home = client.post(
+        "/api/groups",
+        headers=boris,
+        json={"name": "дом", "color": "#b08968"},
+    )
+    assert home.status_code == 201
+    boris_home = home.json()["id"]
+    anya_home = client.post(
+        "/api/groups",
+        headers=anya,
+        json={"name": "Дом", "color": "#4f8f8b"},
+    )
+    assert anya_home.status_code == 201
+    before = len(client.get("/api/groups", headers=boris).json())
+
+    named = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Полить цветы", "date": "2026-10-13", "groupId": anya_home.json()["id"]},
+    )
+    assert named.status_code == 201
+    moved = client.post(
+        f"/api/tasks/{named.json()['id']}/transfer",
+        headers=anya,
+        json={"userId": boris_id},
+    )
+    assert moved.status_code == 200
+    assert moved.json()["groupId"] == boris_home
+    assert len(client.get("/api/groups", headers=boris).json()) == before
+    assert client.get(f"/api/groups/{boris_home}", headers=boris).json()["color"] == "#b08968"
+
+    plain = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Без группы", "date": "2026-10-13"},
+    )
+    assert plain.status_code == 201
+    plain_id = plain.json()["id"]
+    moved_plain = client.post(
+        f"/api/tasks/{plain_id}/transfer",
+        headers=anya,
+        json={"userId": boris_id},
+    )
+    assert moved_plain.status_code == 200
+    assert moved_plain.json()["groupId"] is None
+    assert len(client.get("/api/groups", headers=boris).json()) == before
+
+    own = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Себе", "date": "2026-10-13"},
+    )
+    assert own.status_code == 201
+    own_id = own.json()["id"]
+    self_move = client.post(
+        f"/api/tasks/{own_id}/transfer",
+        headers=anya,
+        json={"userId": anya_id},
+    )
+    assert self_move.status_code == 422
+    assert "себе" in self_move.text
+
+    missing_user = client.post(
+        f"/api/tasks/{own_id}/transfer",
+        headers=anya,
+        json={"userId": "missing"},
+    )
+    assert missing_user.status_code == 404
+
+    foreign = client.post(
+        f"/api/tasks/{plain_id}/transfer",
+        headers=anya,
+        json={"userId": boris_id},
+    )
+    assert foreign.status_code == 404
+
+    assert (
+        client.post(
+            f"/api/tasks/{own_id}/transfer",
+            json={"userId": boris_id},
+        ).status_code
+        == 401
+    )
+
+    work = group_id(client, anya, "Работа")
+    starter = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Созвон", "date": "2026-10-13", "groupId": work},
+    )
+    assert starter.status_code == 201
+    reused = client.post(
+        f"/api/tasks/{starter.json()['id']}/transfer",
+        headers=anya,
+        json={"userId": boris_id},
+    )
+    assert reused.status_code == 200
+    assert reused.json()["groupId"] == group_id(client, boris, "Работа")
+    assert len(client.get("/api/groups", headers=boris).json()) == before
+
+
+def test_profile_search_and_password(client):
+    anya_account, anya = register(client, name="Аня")
+    boris_account, boris = register(client, email="boris@example.com", name="Борис Петров")
+    assert anya_account["user"]["avatar"] is None
+    photo = "data:image/jpeg;base64,aaaa"
+
+    updated = client.patch(
+        "/api/auth/me",
+        headers=boris,
+        json={"name": "  Борис Петров  ", "avatar": photo},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["name"] == "Борис Петров"
+    assert updated.json()["avatar"] == photo
+    assert "password" not in updated.json()
+
+    blank = client.patch("/api/auth/me", headers=boris, json={"name": "   ", "avatar": None})
+    assert blank.status_code == 422
+
+    bad_photo = client.patch(
+        "/api/auth/me",
+        headers=boris,
+        json={"name": "Борис Петров", "avatar": "https://example.com/a.png"},
+    )
+    assert bad_photo.status_code == 422
+
+    found = client.get("/api/users", headers=anya, params={"q": "БОР"})
+    assert found.status_code == 200
+    body = found.json()
+    assert [item["name"] for item in body] == ["Борис Петров"]
+    assert body[0]["id"] == boris_account["user"]["id"]
+    assert body[0]["avatar"] == photo
+    assert "email" not in body[0]
+
+    own = client.get("/api/users", headers=anya, params={"q": "аня"})
+    assert own.json() == []
+    assert client.get("/api/users", headers=anya, params={"q": "   "}).json() == []
+
+    cleared = client.patch(
+        "/api/auth/me",
+        headers=boris,
+        json={"name": "Борис Петров", "avatar": None},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["avatar"] is None
+
+    wrong = client.post(
+        "/api/auth/password",
+        headers=boris,
+        json={"currentPassword": "nope", "newPassword": "password456"},
+    )
+    assert wrong.status_code == 422
+    assert "текущий" in wrong.text
+
+    same = client.post(
+        "/api/auth/password",
+        headers=boris,
+        json={"currentPassword": "password123", "newPassword": "password123"},
+    )
+    assert same.status_code == 422
+
+    short = client.post(
+        "/api/auth/password",
+        headers=boris,
+        json={"currentPassword": "password123", "newPassword": "123"},
+    )
+    assert short.status_code == 422
+
+    changed = client.post(
+        "/api/auth/password",
+        headers=boris,
+        json={"currentPassword": "password123", "newPassword": "password456"},
+    )
+    assert changed.status_code == 204
+    old = client.post(
+        "/api/auth/login",
+        json={"email": "boris@example.com", "password": "password123"},
+    )
+    assert old.status_code == 401
+    fresh = client.post(
+        "/api/auth/login",
+        json={"email": "boris@example.com", "password": "password456"},
+    )
+    assert fresh.status_code == 200
+    assert fresh.json()["user"]["name"] == "Борис Петров"
+
+
+SUBSCRIPTION = {
+    "endpoint": "https://push.example.test/device",
+    "keys": {"p256dh": "p256dh-key", "auth": "auth-key"},
+}
+
+
+def enable_vapid(monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setenv("VAPID_PUBLIC_KEY", "test-public-key")
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "test-private-key")
+    monkeypatch.setenv("VAPID_SUBJECT", "mailto:diary@example.com")
+    get_settings.cache_clear()
+
+
+def test_push_subscription_and_transfer_notification(client, monkeypatch):
+    import json
+
+    from sqlalchemy import func, select
+
+    from app.database import SessionLocal
+    from app.models import PushSubscription
+
+    enable_vapid(monkeypatch)
+    sent = []
+    monkeypatch.setattr("app.push.webpush", lambda **kwargs: sent.append(kwargs))
+
+    assert client.get("/api/push/vapid").status_code == 401
+    assert client.put("/api/push/subscription", json=SUBSCRIPTION).status_code == 401
+
+    anya_account, anya = register(client)
+    boris_account, boris = register(client, email="boris@example.com", name="Борис")
+
+    vapid = client.get("/api/push/vapid", headers=boris)
+    assert vapid.status_code == 200
+    assert vapid.json() == {"publicKey": "test-public-key"}
+
+    insecure = client.put(
+        "/api/push/subscription",
+        headers=boris,
+        json={"endpoint": "http://push.example.test/device", "keys": SUBSCRIPTION["keys"]},
+    )
+    assert insecure.status_code == 422
+
+    saved = client.put("/api/push/subscription", headers=boris, json=SUBSCRIPTION)
+    assert saved.status_code == 204
+    updated = client.put(
+        "/api/push/subscription",
+        headers=boris,
+        json={
+            "endpoint": SUBSCRIPTION["endpoint"],
+            "keys": {"p256dh": "next-p256", "auth": "next-auth"},
+        },
+    )
+    assert updated.status_code == 204
+
+    task = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Сдать макет", "date": "2026-10-13"},
+    )
+    assert task.status_code == 201
+    task_id = task.json()["id"]
+    moved = client.post(
+        f"/api/tasks/{task_id}/transfer",
+        headers=anya,
+        json={"userId": boris_account["user"]["id"]},
+    )
+    assert moved.status_code == 200
+    assert len(sent) == 1
+    assert sent[0]["subscription_info"] == {
+        "endpoint": SUBSCRIPTION["endpoint"],
+        "keys": {"p256dh": "next-p256", "auth": "next-auth"},
+    }
+    assert json.loads(sent[0]["data"]) == {
+        "title": "Новое дело",
+        "body": "Аня: Сдать макет",
+        "url": "/?date=2026-10-13",
+        "date": "2026-10-13",
+        "tag": f"task-{task_id}",
+    }
+    assert sent[0]["vapid_claims"] == {"sub": "mailto:diary@example.com"}
+
+    taken = client.put(
+        "/api/push/subscription",
+        headers=anya,
+        json={
+            "endpoint": SUBSCRIPTION["endpoint"],
+            "keys": {"p256dh": "anya-p256", "auth": "anya-auth"},
+        },
+    )
+    assert taken.status_code == 204
+    sent.clear()
+    reply = client.post(
+        "/api/tasks",
+        headers=boris,
+        json={"title": "Обратно", "date": "2026-10-14"},
+    )
+    assert reply.status_code == 201
+    back = client.post(
+        f"/api/tasks/{reply.json()['id']}/transfer",
+        headers=boris,
+        json={"userId": anya_account["user"]["id"]},
+    )
+    assert back.status_code == 200
+    assert len(sent) == 1
+    assert json.loads(sent[0]["data"])["body"] == "Борис: Обратно"
+
+    ignored = client.request(
+        "DELETE",
+        "/api/push/subscription",
+        headers=boris,
+        json={"endpoint": SUBSCRIPTION["endpoint"]},
+    )
+    assert ignored.status_code == 204
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(PushSubscription)) == 1
+
+    removed = client.request(
+        "DELETE",
+        "/api/push/subscription",
+        headers=anya,
+        json={"endpoint": SUBSCRIPTION["endpoint"]},
+    )
+    assert removed.status_code == 204
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(PushSubscription)) == 0
+
+
+def test_push_drops_expired_subscription_and_skips_without_keys(client, monkeypatch):
+    from pywebpush import WebPushException
+    from sqlalchemy import func, select
+
+    from app.config import get_settings
+    from app.database import SessionLocal
+    from app.models import PushSubscription
+
+    enable_vapid(monkeypatch)
+
+    class Gone:
+        status_code = 410
+
+    def expired(**_kwargs):
+        raise WebPushException("gone", response=Gone())
+
+    monkeypatch.setattr("app.push.webpush", expired)
+    anya_account, anya = register(client)
+    boris_account, boris = register(client, email="boris@example.com", name="Борис")
+    assert client.put("/api/push/subscription", headers=boris, json=SUBSCRIPTION).status_code == 204
+    task = client.post("/api/tasks", headers=anya, json={"title": "Просрочено", "date": "2026-10-13"})
+    moved = client.post(
+        f"/api/tasks/{task.json()['id']}/transfer",
+        headers=anya,
+        json={"userId": boris_account["user"]["id"]},
+    )
+    assert moved.status_code == 200
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count()).select_from(PushSubscription)) == 0
+
+    monkeypatch.setenv("VAPID_PUBLIC_KEY", "")
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "")
+    get_settings.cache_clear()
+    called = []
+    monkeypatch.setattr("app.push.webpush", lambda **kwargs: called.append(kwargs))
+    assert client.put("/api/push/subscription", headers=anya, json=SUBSCRIPTION).status_code == 204
+    another = client.post(
+        "/api/tasks",
+        headers=boris,
+        json={"title": "Без ключа", "date": "2026-10-14"},
+    )
+    quiet = client.post(
+        f"/api/tasks/{another.json()['id']}/transfer",
+        headers=boris,
+        json={"userId": anya_account["user"]["id"]},
+    )
+    assert quiet.status_code == 200
+    assert called == []
+    assert client.get("/api/push/vapid", headers=anya).status_code == 404
 
 
 def test_alembic_upgrade(tmp_path, monkeypatch):

@@ -1,6 +1,6 @@
 "use client"
 
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Send, Trash2 } from "lucide-react"
 
 import { SubtaskEditor, TaskRow } from "@/entities/task"
 import { Button } from "@/shared/ui/button"
@@ -31,6 +31,8 @@ import {
 } from "@/shared/ui/dropdown-menu"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
+import { UserAvatar } from "@/shared/ui/user-avatar"
+import { cn } from "@/shared/lib/utils"
 import {
   Select,
   SelectContent,
@@ -67,6 +69,10 @@ export function TaskItem({ task }: { task: Task }) {
               <DropdownMenuItem onSelect={() => item.openEditor()}>
                 <Pencil />
                 Изменить
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => item.openTransfer()}>
+                <Send />
+                Передать
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => item.setConfirmDelete(true)}>
@@ -147,6 +153,62 @@ export function TaskItem({ task }: { task: Task }) {
               </Button>
               <Button type="submit" disabled={item.pending}>
                 Сохранить
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={item.transferOpen} onOpenChange={item.setTransferOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Передать дело</DialogTitle>
+            <DialogDescription>
+              «{item.task.title}» появится у другого пользователя. Если у него нет такой группы, она создастся сама.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={item.transfer} className="grid gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor={`task-transfer-${item.task.id}`}>Имя</Label>
+              <Input
+                id={`task-transfer-${item.task.id}`}
+                value={item.query}
+                onChange={(event) => item.setQuery(event.target.value)}
+                placeholder="Начните вводить имя"
+                autoComplete="off"
+              />
+            </div>
+            {item.searching ? <p className="text-sm text-muted-foreground">Ищу…</p> : null}
+            {item.query.trim() && !item.searching && item.people.length === 0 && !item.transferError ? (
+              <p className="text-sm text-muted-foreground">Никого с таким именем нет</p>
+            ) : null}
+            {item.people.length > 0 ? (
+              <ul className="grid max-h-60 gap-1 overflow-y-auto">
+                {item.people.map((person) => (
+                  <li key={person.id}>
+                    <button
+                      type="button"
+                      aria-pressed={item.selectedId === person.id}
+                      onClick={() => item.selectPerson(person)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left",
+                        item.selectedId === person.id ? "bg-foreground/8" : "hover:bg-foreground/5",
+                      )}
+                    >
+                      <UserAvatar name={person.name} avatar={person.avatar} />
+                      <span className="min-w-0 truncate text-sm font-semibold">{person.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {item.transferError ? <p className="text-sm text-destructive">{item.transferError}</p> : null}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => item.setTransferOpen(false)}>
+                Отмена
+              </Button>
+              <Button type="submit" disabled={item.pending || !item.selectedId}>
+                Передать
               </Button>
             </DialogFooter>
           </form>

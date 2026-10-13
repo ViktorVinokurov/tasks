@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser
-from app.models import Group, Task
-from app.schemas import TaskCreate, TaskRead, TaskUpdate
+from app.models import Group, Task, User
+from app.push import notify_task_received
+from app.schemas import TaskCreate, TaskRead, TaskTransfer, TaskUpdate
 from app.support import contains_pattern, new_id, utcnow
 
 router = APIRouter(prefix="/tasks", tags=["Дела"])
@@ -28,6 +29,30 @@ def ensure_group(db: Session, group_id: str | None, user_id: str) -> str | None:
     if group is None or group.user_id != user_id:
         raise HTTPException(status_code=422, detail="Такой группы нет")
     return group_id
+
+
+def group_for_recipient(db: Session, source: Group | None, recipient_id: str) -> str | None:
+    if source is None:
+        return None
+    needle = source.name.casefold()
+    owned = db.scalars(
+        select(Group)
+        .where(Group.user_id == recipient_id)
+        .order_by(Group.created_at.asc(), Group.id.asc())
+    )
+    for group in owned:
+        if group.name.casefold() == needle:
+            return group.id
+    created = Group(
+        id=new_id(),
+        user_id=recipient_id,
+        name=source.name,
+        color=source.color,
+        created_at=utcnow(),
+    )
+    db.add(created)
+    db.flush()
+    return created.id
 
 
 @router.get("", response_model=list[TaskRead])
@@ -150,6 +175,37 @@ def toggle_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) 
     task.updated_at = utcnow()
     db.commit()
     db.refresh(task)
+    return task
+
+
+@router.post("/{task_id}/transfer", response_model=TaskRead)
+def transfer_task(
+    task_id: str,
+    payload: TaskTransfer,
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> Task:
+    task = _get_task(db, task_id, user.id)
+    recipient = db.get(User, payload.user_id)
+    if recipient is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if recipient.id == user.id:
+        raise HTTPException(status_code=422, detail="Нельзя передать дело самому себе")
+
+    source = db.get(Group, task.group_id) if task.group_id else None
+    task.user_id = recipient.id
+    task.group_id = group_for_recipient(db, source, recipient.id)
+    task.updated_at = utcnow()
+    db.commit()
+    db.refresh(task)
+    notify_task_received(
+        db,
+        recipient_id=recipient.id,
+        sender_name=user.name,
+        title=task.title,
+        day=task.date,
+        task_id=task.id,
+    )
     return task
 
 
