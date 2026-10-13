@@ -21,19 +21,42 @@ function sameApplicationKey(subscription: PushSubscription, next: Uint8Array) {
   return bytes.every((byte, index) => byte === next[index])
 }
 
+function isIos() {
+  const ua = navigator.userAgent
+  if (/iphone|ipad|ipod/i.test(ua)) return true
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+}
+
+function isInAppBrowser() {
+  return /Telegram|Instagram|FBAN|FBAV|VKClient|MicroMessenger|Line\/|Twitter|Snapchat|; wv\)/i.test(
+    navigator.userAgent,
+  )
+}
+
+function hasPushManager() {
+  if ("PushManager" in window) return true
+  return typeof ServiceWorkerRegistration !== "undefined" && "pushManager" in ServiceWorkerRegistration.prototype
+}
+
 export function pushAvailable() {
   return (
     typeof window !== "undefined" &&
+    window.isSecureContext &&
     "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
+    "Notification" in window &&
+    hasPushManager()
   )
 }
 
 function unsupportedMessage() {
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
-  if (ios) return "Добавьте ежедневник на экран «Домой», затем включите уведомления"
-  return "Этот браузер не показывает уведомления"
+  if (!window.isSecureContext) {
+    return "На телефоне уведомления включаются только по адресу https://, с замком в строке. Сейчас сайт открыт без защиты."
+  }
+  if (isIos()) return "Добавьте ежедневник на экран «Домой», затем включите уведомления"
+  if (isInAppBrowser()) {
+    return "Это встроенное окно приложения. Откройте ежедневник в Chrome: меню и «Открыть в браузере»."
+  }
+  return "Откройте ежедневник в Chrome. Этот браузер не присылает уведомления."
 }
 
 async function readyRegistration() {

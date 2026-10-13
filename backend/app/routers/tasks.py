@@ -116,6 +116,7 @@ def create_task(payload: TaskCreate, user: CurrentUser, db: Session = Depends(ge
     db.add(task)
     db.commit()
     db.refresh(task)
+    publish(user.id, {"type": "diary"})
     return task
 
 
@@ -166,6 +167,7 @@ def update_task(
         task.updated_at = utcnow()
         db.commit()
         db.refresh(task)
+        publish(user.id, {"type": "diary"})
     return task
 
 
@@ -176,6 +178,7 @@ def toggle_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) 
     task.updated_at = utcnow()
     db.commit()
     db.refresh(task)
+    publish(user.id, {"type": "diary"})
     return task
 
 
@@ -203,6 +206,7 @@ def transfer_task(
         recipient.id,
         {"type": "task", "date": task.date.isoformat(), "taskId": task.id},
     )
+    publish(user.id, {"type": "diary"})
     notify_task_received(
         db,
         recipient_id=recipient.id,
@@ -219,4 +223,5 @@ def delete_task(task_id: str, user: CurrentUser, db: Session = Depends(get_db)) 
     task = _get_task(db, task_id, user.id)
     db.delete(task)
     db.commit()
+    publish(user.id, {"type": "diary"})
     return Response(status_code=204)

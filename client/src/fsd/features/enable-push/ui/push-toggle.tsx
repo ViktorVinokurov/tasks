@@ -13,9 +13,12 @@ export function PushToggle() {
   return (
     <div className="flex min-w-0 items-center gap-2">
       {push.hint ? (
-        <span className="max-w-40 truncate text-xs text-destructive" role="status" title={push.hint}>
+        <p
+          className="fixed inset-x-0 top-16 z-30 bg-background/95 px-4 py-2 text-center text-sm text-destructive"
+          role="status"
+        >
           {push.hint}
-        </span>
+        </p>
       ) : null}
       <Button
         type="button"

@@ -1,48 +1,61 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { setGroups, type Group } from "@/entities/group"
 import { clearSession, selectToken, useDiaryApi } from "@/entities/session"
-import { selectAllTasks, setTasks, type Task } from "@/entities/task"
+import { setTasks, type Task } from "@/entities/task"
 import { setSelectedDate } from "@/features/pick-date"
 import { isISODate } from "@/shared/lib/date"
 
-const POLL_MS = 4000
+const AUTH_CLOSE = 4401
 
-function readFrame(frame: string) {
-  const line = frame.split("\n").find((item) => item.startsWith("data:"))
-  if (!line) return null
+type DiaryFrame =
+  | { type: "ready" }
+  | { type: "ping" }
+  | { type: "diary" }
+  | { type: "task"; date: string }
+
+function diarySocketUrl() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+  return `${protocol}//${window.location.host}/api/ws`
+}
+
+function readFrame(data: unknown): DiaryFrame | null {
+  if (typeof data !== "string") return null
+  let payload: unknown
   try {
-    const payload: unknown = JSON.parse(line.slice(5).trim())
-    if (!payload || typeof payload !== "object" || !("type" in payload)) return null
-    if (payload.type !== "task" || !("date" in payload) || typeof payload.date !== "string") return null
-    return payload.date
+    payload = JSON.parse(data)
   } catch {
     return null
   }
+  if (!payload || typeof payload !== "object" || !("type" in payload)) return null
+  if (payload.type === "ready" || payload.type === "ping" || payload.type === "diary") {
+    return { type: payload.type }
+  }
+  if (payload.type === "task" && "date" in payload && typeof payload.date === "string") {
+    return { type: "task", date: payload.date }
+  }
+  return null
 }
 
 export function useLiveDiary() {
   const token = useSelector(selectToken)
-  const tasks = useSelector(selectAllTasks)
   const request = useDiaryApi()
   const dispatch = useDispatch()
-  const tasksRef = useRef(tasks)
-  useEffect(() => {
-    tasksRef.current = tasks
-  }, [tasks])
 
   useEffect(() => {
     if (!token) return
     const accessToken = token
     let cancelled = false
-    const controller = new AbortController()
+    let socket: WebSocket | null = null
+    let delay = 1000
+    let retryTimer = 0
+    let connected = false
 
-    async function reload(jump: boolean) {
+    async function reload() {
       try {
-        const before = tasksRef.current
         const [nextTasks, groups] = await Promise.all([
           request<Task[]>("/api/tasks"),
           request<Group[]>("/api/groups"),
@@ -50,10 +63,6 @@ export function useLiveDiary() {
         if (cancelled) return
         dispatch(setTasks(nextTasks))
         dispatch(setGroups(groups))
-        if (!jump) return
-        const known = new Set(before.map((task) => task.id))
-        const fresh = nextTasks.find((task) => !known.has(task.id))
-        if (fresh && isISODate(fresh.date)) dispatch(setSelectedDate(fresh.date))
       } catch {
         return
       }
@@ -61,65 +70,79 @@ export function useLiveDiary() {
 
     function showTask(date: string) {
       if (isISODate(date)) dispatch(setSelectedDate(date))
-      void reload(false)
+      void reload()
     }
 
-    async function listen() {
-      let delay = 1000
-      while (!cancelled) {
-        try {
-          const response = await fetch("/api/events", {
-            headers: {
-              Accept: "text/event-stream",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            cache: "no-store",
-            signal: controller.signal,
-          })
-          if (response.status === 401) {
-            dispatch(clearSession())
-            return
-          }
-          if (!response.ok || !response.body) throw new Error("Поток событий недоступен")
-          delay = 1000
-          const reader = response.body.getReader()
-          const decoder = new TextDecoder()
-          let buffer = ""
-          while (!cancelled) {
-            const { done, value } = await reader.read()
-            if (done) break
-            buffer += decoder.decode(value, { stream: true })
-            const frames = buffer.split("\n\n")
-            buffer = frames.pop() ?? ""
-            for (const frame of frames) {
-              const date = readFrame(frame)
-              if (date) showTask(date)
-            }
-          }
-        } catch {
-          if (cancelled || controller.signal.aborted) return
-        }
-        if (cancelled) return
-        await new Promise((resolve) => window.setTimeout(resolve, delay))
+    function schedule() {
+      if (cancelled) return
+      window.clearTimeout(retryTimer)
+      retryTimer = window.setTimeout(() => {
+        connect()
         delay = Math.min(delay * 2, 15_000)
-      }
+      }, delay)
     }
 
-    void listen()
-    const poll = window.setInterval(() => {
-      if (document.visibilityState === "visible") void reload(true)
-    }, POLL_MS)
+    function connect() {
+      if (cancelled) return
+      if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+        return
+      }
+      const next = new WebSocket(diarySocketUrl())
+      socket = next
+
+      next.addEventListener("open", () => {
+        if (cancelled || socket !== next) {
+          next.close()
+          return
+        }
+        next.send(JSON.stringify({ type: "auth", token: accessToken }))
+      })
+
+      next.addEventListener("message", (event) => {
+        if (cancelled || socket !== next) return
+        const frame = readFrame(event.data)
+        if (!frame || frame.type === "ping") return
+        if (frame.type === "ready") {
+          delay = 1000
+          if (connected) void reload()
+          connected = true
+          return
+        }
+        if (frame.type === "task") showTask(frame.date)
+        else void reload()
+      })
+
+      next.addEventListener("close", (event) => {
+        if (socket !== next) return
+        socket = null
+        if (cancelled) return
+        if (event.code === AUTH_CLOSE) {
+          dispatch(clearSession())
+          return
+        }
+        schedule()
+      })
+    }
 
     function onVisible() {
-      if (document.visibilityState === "visible") void reload(true)
+      if (document.visibilityState !== "visible" || cancelled) return
+      if (socket?.readyState === WebSocket.OPEN) {
+        void reload()
+        return
+      }
+      window.clearTimeout(retryTimer)
+      delay = 1000
+      connect()
     }
-    document.addEventListener("visibilitychange", onVisible)
 
+    connect()
+    document.addEventListener("visibilitychange", onVisible)
     return () => {
       cancelled = true
-      controller.abort()
-      window.clearInterval(poll)
+      window.clearTimeout(retryTimer)
       document.removeEventListener("visibilitychange", onVisible)
+      socket?.close()
+      socket = null
     }
   }, [dispatch, request, token])
 }

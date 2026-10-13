@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser
+from app.live import publish
 from app.models import Group, Task
 from app.schemas import GroupCreate, GroupRead, GroupUpdate
 from app.support import new_id, utcnow
@@ -40,6 +41,7 @@ def create_group(payload: GroupCreate, user: CurrentUser, db: Session = Depends(
     db.add(group)
     db.commit()
     db.refresh(group)
+    publish(user.id, {"type": "diary"})
     return group
 
 
@@ -60,6 +62,7 @@ def update_group(
     group.color = payload.color
     db.commit()
     db.refresh(group)
+    publish(user.id, {"type": "diary"})
     return group
 
 
@@ -73,4 +76,5 @@ def delete_group(group_id: str, user: CurrentUser, db: Session = Depends(get_db)
         task.group_id = None
     db.delete(group)
     db.commit()
+    publish(user.id, {"type": "diary"})
     return Response(status_code=204)

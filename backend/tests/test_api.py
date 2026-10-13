@@ -783,9 +783,9 @@ def test_transfer_tells_open_diary(client, monkeypatch):
         "app.routers.tasks.publish",
         lambda user_id, event: events.append((user_id, event)),
     )
-    _, anya = register(client)
+    anya_account, anya = register(client)
     boris_account, boris = register(client, email="boris@example.com", name="Борис")
-    assert client.get("/api/events").status_code == 401
+    assert client.get("/api/events").status_code == 404
 
     task = client.post(
         "/api/tasks",
@@ -801,27 +801,62 @@ def test_transfer_tells_open_diary(client, monkeypatch):
     )
     assert moved.status_code == 200
     assert events == [
-        (boris_account["user"]["id"], {"type": "task", "date": "2026-10-13", "taskId": task_id})
+        (anya_account["user"]["id"], {"type": "diary"}),
+        (boris_account["user"]["id"], {"type": "task", "date": "2026-10-13", "taskId": task_id}),
+        (anya_account["user"]["id"], {"type": "diary"}),
     ]
 
 
-def test_live_stream_delivers_task():
+def test_group_change_tells_open_diary(client, monkeypatch):
+    events = []
+    monkeypatch.setattr(
+        "app.routers.groups.publish",
+        lambda user_id, event: events.append((user_id, event)),
+    )
+    account, headers = register(client)
+    created = client.post("/api/groups", headers=headers, json={"name": "Сад", "color": "#3e6b56"})
+    assert created.status_code == 201
+    assert events == [(account["user"]["id"], {"type": "diary"})]
+
+
+def test_socket_rejects_bad_token(client):
+    from starlette.websockets import WebSocketDisconnect
+
+    with client.websocket_connect("/api/ws") as socket:
+        socket.send_json({"type": "auth", "token": "bad"})
+        try:
+            socket.receive_json()
+        except WebSocketDisconnect as error:
+            assert error.code == 4401
+            return
+    raise AssertionError("сокет принял чужой токен")
+
+
+def test_socket_receives_diary_event(client):
+    from app.live import publish
+
+    account, _headers = register(client)
+    with client.websocket_connect("/api/ws") as socket:
+        socket.send_json({"type": "auth", "token": account["accessToken"]})
+        assert socket.receive_json() == {"type": "ready"}
+        publish(account["user"]["id"], {"type": "task", "date": "2026-10-13", "taskId": "abc"})
+        assert socket.receive_json() == {"type": "task", "date": "2026-10-13", "taskId": "abc"}
+        publish(account["user"]["id"], {"type": "diary"})
+        assert socket.receive_json() == {"type": "diary"}
+
+
+def test_publish_reaches_subscriber():
     import asyncio
 
-    from app.live import bind_loop, publish, stream
+    from app.live import bind_loop, publish, subscription
 
     async def run():
         bind_loop(asyncio.get_running_loop())
         try:
-            generator = stream("user-1")
-            ready = await anext(generator)
-            assert '"type": "ready"' in ready
-            incoming = asyncio.ensure_future(anext(generator))
-            await asyncio.sleep(0)
-            publish("user-1", {"type": "task", "date": "2026-10-13", "taskId": "abc"})
-            event = await incoming
-            assert '"taskId": "abc"' in event
-            await generator.aclose()
+            async with subscription("user-1") as queue:
+                publish("user-1", {"type": "diary"})
+                event = await asyncio.wait_for(queue.get(), timeout=1)
+                assert event == {"type": "diary"}
         finally:
             bind_loop(None)
 

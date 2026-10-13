@@ -1,5 +1,6 @@
 import asyncio
-import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 _loop: asyncio.AbstractEventLoop | None = None
 _subscribers: dict[str, set[asyncio.Queue[dict]]] = {}
@@ -22,22 +23,12 @@ def _enqueue(user_id: str, event: dict) -> None:
         queue.put_nowait(event)
 
 
-def _frame(event: dict) -> str:
-    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-
-
-async def stream(user_id: str):
+@asynccontextmanager
+async def subscription(user_id: str) -> AsyncIterator[asyncio.Queue[dict]]:
     queue: asyncio.Queue[dict] = asyncio.Queue()
     _subscribers.setdefault(user_id, set()).add(queue)
     try:
-        yield _frame({"type": "ready"})
-        while True:
-            try:
-                event = await asyncio.wait_for(queue.get(), timeout=15)
-            except asyncio.TimeoutError:
-                yield ": ping\n\n"
-                continue
-            yield _frame(event)
+        yield queue
     finally:
         listeners = _subscribers.get(user_id)
         if listeners is not None:
