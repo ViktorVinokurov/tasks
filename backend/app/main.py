@@ -1,9 +1,20 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, groups, push, tasks, thoughts, users
+from app.live import bind_loop
+from app.routers import auth, events, groups, push, tasks, thoughts, users
 from app.schemas import HealthRead
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    bind_loop(asyncio.get_running_loop())
+    yield
+    bind_loop(None)
 
 
 def create_app() -> FastAPI:
@@ -12,6 +23,7 @@ def create_app() -> FastAPI:
         title="Ежедневник API",
         description="Дела, мысли и группы пользователя в PostgreSQL.",
         version="1.0.0",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -25,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(thoughts.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
     app.include_router(push.router, prefix="/api")
+    app.include_router(events.router, prefix="/api")
 
     @app.get("/health", response_model=HealthRead, tags=["Служебное"])
     def health() -> HealthRead:

@@ -7,6 +7,7 @@ import type { ReactNode } from "react"
 
 import { SessionMenu } from "@/features/auth"
 import { PushToggle } from "@/features/enable-push"
+import { LiveDiary } from "@/features/sync-diary"
 import { ThemeSwitch } from "@/features/switch-theme"
 import { cn } from "@/shared/lib/utils"
 
@@ -24,6 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
+      <LiveDiary />
       <header className="glass-panel glass-bar sticky top-0 z-30">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
           <Link href="/" className="group flex min-w-0 items-center gap-3">

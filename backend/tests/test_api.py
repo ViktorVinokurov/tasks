@@ -777,6 +777,57 @@ def test_push_drops_expired_subscription_and_skips_without_keys(client, monkeypa
     assert client.get("/api/push/vapid", headers=anya).status_code == 404
 
 
+def test_transfer_tells_open_diary(client, monkeypatch):
+    events = []
+    monkeypatch.setattr(
+        "app.routers.tasks.publish",
+        lambda user_id, event: events.append((user_id, event)),
+    )
+    _, anya = register(client)
+    boris_account, boris = register(client, email="boris@example.com", name="Борис")
+    assert client.get("/api/events").status_code == 401
+
+    task = client.post(
+        "/api/tasks",
+        headers=anya,
+        json={"title": "Сдать макет", "date": "2026-10-13"},
+    )
+    assert task.status_code == 201
+    task_id = task.json()["id"]
+    moved = client.post(
+        f"/api/tasks/{task_id}/transfer",
+        headers=anya,
+        json={"userId": boris_account["user"]["id"]},
+    )
+    assert moved.status_code == 200
+    assert events == [
+        (boris_account["user"]["id"], {"type": "task", "date": "2026-10-13", "taskId": task_id})
+    ]
+
+
+def test_live_stream_delivers_task():
+    import asyncio
+
+    from app.live import bind_loop, publish, stream
+
+    async def run():
+        bind_loop(asyncio.get_running_loop())
+        try:
+            generator = stream("user-1")
+            ready = await anext(generator)
+            assert '"type": "ready"' in ready
+            incoming = asyncio.ensure_future(anext(generator))
+            await asyncio.sleep(0)
+            publish("user-1", {"type": "task", "date": "2026-10-13", "taskId": "abc"})
+            event = await incoming
+            assert '"taskId": "abc"' in event
+            await generator.aclose()
+        finally:
+            bind_loop(None)
+
+    asyncio.run(run())
+
+
 def test_alembic_upgrade(tmp_path, monkeypatch):
     from alembic import command
     from alembic.config import Config

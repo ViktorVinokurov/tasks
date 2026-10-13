@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import CurrentUser
+from app.live import publish
 from app.models import Group, Task, User
 from app.push import notify_task_received
 from app.schemas import TaskCreate, TaskRead, TaskTransfer, TaskUpdate
@@ -198,6 +199,10 @@ def transfer_task(
     task.updated_at = utcnow()
     db.commit()
     db.refresh(task)
+    publish(
+        recipient.id,
+        {"type": "task", "date": task.date.isoformat(), "taskId": task.id},
+    )
     notify_task_received(
         db,
         recipient_id=recipient.id,

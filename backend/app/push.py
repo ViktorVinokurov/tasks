@@ -25,12 +25,14 @@ def notify_task_received(
     private_key = settings.vapid_private_key.replace("\\n", "\n").strip()
     subject = settings.vapid_subject.strip()
     if not private_key or not subject.startswith(("mailto:", "https://")):
+        logger.info("Push не отправлен: на сервере не задан ключ VAPID")
         return
 
     subscriptions = list(
         db.scalars(select(PushSubscription).where(PushSubscription.user_id == recipient_id))
     )
     if not subscriptions:
+        logger.info("Push не отправлен: получатель не включил уведомления")
         return
 
     payload = json.dumps(
